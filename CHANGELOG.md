@@ -5,6 +5,24 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [4.1.0] — 2026-06-07
+
+### Añadido
+- Campo **Precio de cierre real** en la sección Cierre del formulario
+- Display auto-calculado del **R:R planificado** en tiempo real desde Entry / SL / TP
+- Display de distancias en puntos (Dist. SL y Dist. TP) bajo los campos de precios
+- **R:R real auto-calculado** desde Entry / SL / Precio cierre + dirección del trade
+- **Duración del trade** calculada automáticamente (en minutos) y guardada
+- Duración visible en cada trade card del Registro (ej: "2h 15m")
+- Precios E / SL / TP / Cierre visibles en cada trade card
+
+### Mejorado
+- Calculadora de lotaje **unificada**: eliminados campos duplicados de Entry/SL
+  (ahora lee directamente de la sección Precios)
+- Export CSV incluye nuevas columnas: Entrada, SL, TP, Cierre, Duración(min)
+
+---
+
 ## [4.0.0] — 2026-06 (versión base en este repositorio)
 
 ### Añadido
