@@ -528,21 +528,21 @@
                         <input type="number" id="tradeTPPrice" class="form-input text-sm" step="any" placeholder="0.00">
                     </div>
                 </div>
+                <!-- Auto R:R display -->
+                <div id="priceRRDisplay" class="hidden text-xs rounded p-2 flex items-center justify-between" style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25)">
+                    <span class="text-slate-400"><i class="fas fa-magic mr-1"></i>R:R calculado automáticamente</span>
+                    <span id="priceRRValue" class="font-bold text-blue-300">-</span>
+                </div>
+                <div id="priceSLDistDisplay" class="hidden flex gap-4 text-xs text-slate-500 px-1">
+                    <span>Dist. SL: <span id="priceSLDist" class="text-slate-300 font-medium">-</span> pts</span>
+                    <span>Dist. TP: <span id="priceTPDist" class="text-slate-300 font-medium">-</span> pts</span>
+                </div>
             </div>
 
             <!-- FASE 3: Calculadora de lotaje integrada -->
             <div class="space-y-3">
                 <h4 class="font-semibold text-blue-400 text-sm"><i class="fas fa-calculator mr-2"></i>Calculadora de Lotaje</h4>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-medium mb-1">Precio entrada</label>
-                        <input type="number" id="calcEntry" class="form-input text-sm" step="any" placeholder="Ej: 3250.50">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium mb-1">Precio SL</label>
-                        <input type="number" id="calcSL" class="form-input text-sm" step="any" placeholder="Ej: 3240.00">
-                    </div>
-                </div>
+                <p class="text-xs text-slate-500">Lee Entrada y SL de la sección de Precios ↑</p>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-medium mb-1">Valor pip/punto</label>
@@ -671,6 +671,17 @@
                         <label class="block text-xs font-medium mb-1">Hora cierre</label>
                         <input type="time" id="tradeCloseTime" class="form-input text-sm">
                     </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium mb-1">Precio de cierre real</label>
+                    <input type="number" id="tradeClosePrice" class="form-input text-sm" step="any" placeholder="0.00">
+                </div>
+                <div id="rrRealAutoDisplay" class="hidden text-xs rounded p-2 flex items-center justify-between" style="background:rgba(71,85,105,0.3);border:1px solid rgba(71,85,105,0.4)">
+                    <span class="text-slate-400"><i class="fas fa-magic mr-1"></i>R:R real calculado</span>
+                    <span id="rrRealAutoValue" class="font-bold">-</span>
+                </div>
+                <div id="durationDisplay" class="hidden text-xs text-slate-500 px-1">
+                    <i class="fas fa-hourglass-half mr-1 text-blue-400"></i>Duración: <span id="durationValue" class="text-slate-300 font-medium">-</span>
                 </div>
             </div>
 
@@ -1319,8 +1330,90 @@ class TradingJournal {
             if(acc){ const ci=document.getElementById('calcCapital'); if(ci) ci.value=this.getAccountBalance(acc.id).toFixed(2); }
         });
 
-        // Toggle filters
-        document.getElementById('toggleFilters')?.addEventListener('click', ()=>{
+        // ── AUTO R:R desde precios ─────────────────────────────────────
+        const calcAutoRR = () => {
+            const entry = parseFloat(document.getElementById('tradeEntryPrice')?.value) || 0;
+            const sl    = parseFloat(document.getElementById('tradeSLPrice')?.value) || 0;
+            const tp    = parseFloat(document.getElementById('tradeTPPrice')?.value) || 0;
+            const distDispEl = document.getElementById('priceSLDistDisplay');
+            const rrDispEl   = document.getElementById('priceRRDisplay');
+            const rrValEl    = document.getElementById('priceRRValue');
+            if(entry > 0 && sl > 0 && Math.abs(entry - sl) > 0) {
+                const distSL = Math.abs(entry - sl);
+                const slDistEl = document.getElementById('priceSLDist');
+                const tpDistEl = document.getElementById('priceTPDist');
+                if(slDistEl) slDistEl.textContent = distSL.toFixed(entry < 10 ? 5 : 2);
+                if(tp > 0) {
+                    const distTP = Math.abs(tp - entry);
+                    if(tpDistEl) tpDistEl.textContent = distTP.toFixed(entry < 10 ? 5 : 2);
+                    distDispEl?.classList.remove('hidden');
+                    const rr = (distTP / distSL).toFixed(2);
+                    const rrNum = parseFloat(rr);
+                    const rrPlEl = document.getElementById('tradeRRPlanned');
+                    if(rrPlEl) rrPlEl.value = rr;
+                    rrDispEl?.classList.remove('hidden');
+                    if(rrValEl){ rrValEl.textContent = '1:' + rr; rrValEl.style.color = rrNum >= 2 ? '#4ade80' : rrNum >= 1 ? '#fb923c' : '#f87171'; }
+                } else {
+                    distDispEl?.classList.remove('hidden');
+                    if(tpDistEl) tpDistEl.textContent = '-';
+                    rrDispEl?.classList.add('hidden');
+                }
+            } else {
+                rrDispEl?.classList.add('hidden');
+                distDispEl?.classList.add('hidden');
+            }
+        };
+
+        const calcAutoRRReal = () => {
+            const entry  = parseFloat(document.getElementById('tradeEntryPrice')?.value) || 0;
+            const sl     = parseFloat(document.getElementById('tradeSLPrice')?.value) || 0;
+            const close  = parseFloat(document.getElementById('tradeClosePrice')?.value) || 0;
+            const dir    = document.getElementById('tradeDirection')?.value || '';
+            const dispEl = document.getElementById('rrRealAutoDisplay');
+            const valEl  = document.getElementById('rrRealAutoValue');
+            if(entry > 0 && sl > 0 && close > 0) {
+                const distSL = Math.abs(entry - sl);
+                if(distSL > 0) {
+                    const signedDist = dir === 'SHORT' ? (entry - close) : (close - entry);
+                    const rrReal = (signedDist / distSL).toFixed(2);
+                    const rrRealNum = parseFloat(rrReal);
+                    const rrRealEl = document.getElementById('tradeRRReal');
+                    if(rrRealEl) rrRealEl.value = Math.abs(rrRealNum).toFixed(2);
+                    dispEl?.classList.remove('hidden');
+                    if(valEl){ valEl.textContent = (rrRealNum >= 0 ? '+' : '') + rrReal + 'R'; valEl.style.color = rrRealNum >= 0 ? '#4ade80' : '#f87171'; }
+                }
+            } else { dispEl?.classList.add('hidden'); }
+        };
+
+        const calcDuration = () => {
+            const date  = document.getElementById('tradeDate')?.value;
+            const time  = document.getElementById('tradeTime')?.value;
+            const cDate = document.getElementById('tradeCloseDate')?.value;
+            const cTime = document.getElementById('tradeCloseTime')?.value;
+            const dispEl = document.getElementById('durationDisplay');
+            const valEl  = document.getElementById('durationValue');
+            if(date && time && cDate && cTime) {
+                const open  = new Date(`${date}T${time}`);
+                const close = new Date(`${cDate}T${cTime}`);
+                const diff  = close - open;
+                if(diff > 0 && valEl && dispEl) {
+                    const h = Math.floor(diff / 3600000);
+                    const m = Math.floor((diff % 3600000) / 60000);
+                    valEl.textContent = h > 0 ? `${h}h ${m}m` : `${m}m`;
+                    dispEl.classList.remove('hidden');
+                }
+            } else { dispEl?.classList.add('hidden'); }
+        };
+
+        ['tradeEntryPrice','tradeSLPrice','tradeTPPrice','tradeDirection'].forEach(id => {
+            document.getElementById(id)?.addEventListener('input', calcAutoRR);
+            document.getElementById(id)?.addEventListener('change', calcAutoRR);
+        });
+        document.getElementById('tradeClosePrice')?.addEventListener('input', ()=>{ calcAutoRRReal(); });
+        document.getElementById('tradeDirection')?.addEventListener('change', ()=>{ calcAutoRRReal(); });
+        ['tradeCloseDate','tradeCloseTime','tradeDate','tradeTime'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', calcDuration);
+        });
             const fp=document.getElementById('filterPanel');
             const hidden=fp?.classList.toggle('hidden');
             const btn=document.getElementById('toggleFilters');
@@ -1370,7 +1463,7 @@ class TradingJournal {
         f('tradeSession',t.session); f('tradeStrategy',t.strategy); f('tradePOI',t.poi);
         f('tradeFibLevel',t.fibLevel); f('tradeTrendHTF',t.trendHTF); f('tradeAligned',t.aligned);
         f('confluenceDetails',t.confluenceDetails); f('tradeEntryPrice',t.entryPrice);
-        f('tradeSLPrice',t.slPrice); f('tradeTPPrice',t.tpPrice);
+        f('tradeSLPrice',t.slPrice); f('tradeTPPrice',t.tpPrice); f('tradeClosePrice',t.closePrice);
         f('riskType',t.riskType||'percentage'); f('riskValue',t.riskValue);
         f('tradeMentalState',t.mentalState||'Neutro'); f('tradeRulesFollowed',t.rulesFollowed||'Sí');
         f('tradeRulesBreak',t.rulesBreak); f('tradeRRPlanned',t.rrPlanned);
@@ -1397,6 +1490,7 @@ class TradingJournal {
             entryPrice:parseFloat(g('tradeEntryPrice'))||null,
             slPrice:parseFloat(g('tradeSLPrice'))||null,
             tpPrice:parseFloat(g('tradeTPPrice'))||null,
+            closePrice:parseFloat(g('tradeClosePrice'))||null,
             riskType:g('riskType')||'percentage', riskValue:parseFloat(g('riskValue'))||0,
             mentalState:g('tradeMentalState')||'Neutro',
             rulesFollowed:g('tradeRulesFollowed')||'Sí',
@@ -1406,6 +1500,7 @@ class TradingJournal {
             lossCause:g('tradeLossCause'),
             ignoredNews:document.getElementById('tradeIgnoredNews')?.checked||false,
             closeDate:g('tradeCloseDate'), closeTime:g('tradeCloseTime'), notes:g('tradeNotes'),
+            duration: (()=>{ const d=g('tradeDate'),ti=g('tradeTime'),cd=g('tradeCloseDate'),ct=g('tradeCloseTime'); if(d&&ti&&cd&&ct){ const diff=new Date(`${cd}T${ct}`)-new Date(`${d}T${ti}`); if(diff>0) return Math.round(diff/60000); } return null; })(),
             updatedAt:new Date().toISOString()
         };
         if(!data.date){ showToast('La fecha es requerida','error'); return; }
@@ -1439,15 +1534,15 @@ class TradingJournal {
     // ── LOT CALCULATOR ────────────────────────────────────────────────
     setupLotCalculator(){
         document.getElementById('calcLotBtn')?.addEventListener('click',()=>{
-            const entry=parseFloat(document.getElementById('calcEntry')?.value)||0;
-            const sl   =parseFloat(document.getElementById('calcSL')?.value)||0;
+            const entry=parseFloat(document.getElementById('tradeEntryPrice')?.value)||0;
+            const sl   =parseFloat(document.getElementById('tradeSLPrice')?.value)||0;
             const pipV =parseFloat(document.getElementById('calcPipVal')?.value)||1;
             const accId=document.getElementById('tradeAccount')?.value;
             const acc  =this.getAccountById(accId);
             const capital=parseFloat(document.getElementById('calcCapital')?.value)||(acc?this.getAccountBalance(acc.id):10000);
             const riskPct=parseFloat(document.getElementById('riskValue')?.value)||1;
             const riskType=document.getElementById('riskType')?.value||'percentage';
-            if(!entry||!sl){ showToast('Ingresa precio entrada y SL','error'); return; }
+            if(!entry||!sl){ showToast('Ingresa Entrada y SL en la sección Precios ↑','error'); return; }
             const dist=Math.abs(entry-sl);
             if(dist===0){ showToast('Entrada y SL no pueden ser iguales','error'); return; }
             const riskAmt=riskType==='percentage'?(capital*riskPct/100):riskPct;
@@ -1462,9 +1557,8 @@ class TradingJournal {
             set('lotRiskDollar', '$'+riskAmt.toFixed(2));
             set('lotDistSL', dist.toFixed(2)+' pts');
             set('lotTPEst', tpPrice.toFixed(2));
-            const ep=document.getElementById('tradeEntryPrice'); if(ep&&!ep.value) ep.value=entry;
-            const sp=document.getElementById('tradeSLPrice');    if(sp&&!sp.value) sp.value=sl;
-            const tp=document.getElementById('tradeTPPrice');    if(tp&&!tp.value) tp.value=tpPrice.toFixed(2);
+            // Auto-fill TP price if not set
+            const tp=document.getElementById('tradeTPPrice'); if(tp&&!tp.value){ tp.value=tpPrice.toFixed(2); tp.dispatchEvent(new Event('input')); }
         });
     }
 
@@ -1688,6 +1782,13 @@ class TradingJournal {
                     <div><span class="text-slate-500">Mental:</span><div>${t.mentalState||'-'}</div></div>
                     <div><span class="text-slate-500">Reglas:</span><div class="${t.rulesFollowed==='No'?'text-red-400':t.rulesFollowed==='Parcial'?'text-yellow-400':''}">${t.rulesFollowed||'Sí'}</div></div>
                 </div>
+                ${(t.entryPrice||t.slPrice||t.tpPrice)?`<div class="flex flex-wrap gap-x-3 gap-y-1 text-xs mb-2 px-1 py-1 rounded" style="background:rgba(30,41,59,0.6)">
+                    ${t.entryPrice?`<span class="text-slate-500">E: <span class="text-slate-200 font-medium">${t.entryPrice}</span></span>`:''}
+                    ${t.slPrice?`<span class="text-slate-500">SL: <span class="text-red-400 font-medium">${t.slPrice}</span></span>`:''}
+                    ${t.tpPrice?`<span class="text-slate-500">TP: <span class="text-green-400 font-medium">${t.tpPrice}</span></span>`:''}
+                    ${t.closePrice?`<span class="text-slate-500">C: <span class="text-blue-300 font-medium">${t.closePrice}</span></span>`:''}
+                    ${t.duration?`<span class="text-slate-500 ml-auto"><i class="fas fa-clock text-blue-400/70 mr-1"></i>${t.duration>=60?Math.floor(t.duration/60)+'h '+(t.duration%60)+'m':t.duration+'m'}</span>`:''}
+                </div>`:''}
                 ${t.lossCause?`<div class="text-xs text-red-400 mb-2"><i class="fas fa-exclamation-circle mr-1"></i>${t.lossCause}</div>`:''}
                 ${t.notes?`<div class="text-xs text-slate-400 mb-2 italic">"${t.notes.substring(0,80)}${t.notes.length>80?'...':''}"</div>`:''}
                 <div class="flex gap-2">
@@ -1967,9 +2068,9 @@ class TradingJournal {
     // ── EXPORT / IMPORT ───────────────────────────────────────────────
     exportCSV(){
         if(!this.trades.length){ showToast('Sin datos','error'); return; }
-        const h=['Cuenta','Fecha','Hora','Activo','Dir','TF','Sesión','Estrategia','Setup','Fib','Riesgo','Tipo','Resultado','RR Plan','RR Real','PnL','Mental','Reglas','Causa LOSS','Notas'];
+        const h=['Cuenta','Fecha','Hora','Activo','Dir','TF','Sesión','Estrategia','Setup','Fib','Entrada','SL','TP','Cierre','Duración(min)','Riesgo','Tipo','Resultado','RR Plan','RR Real','PnL','Mental','Reglas','Causa LOSS','Notas'];
         const rows=this.trades.map(t=>{ const a=this.getAccountById(t.accountId); const pl=a?this.calcPL(t,a.initialCapital):0;
-            return [a?.name||'?',t.date,t.time,t.pair,t.direction,t.timeframe,t.session,t.strategy,t.poi,t.fibLevel,t.riskValue,t.riskType,t.result,t.rrPlanned,t.rrReal,pl.toFixed(2),t.mentalState,t.rulesFollowed,t.lossCause,t.notes].map(v=>`"${v||''}"`) });
+            return [a?.name||'?',t.date,t.time,t.pair,t.direction,t.timeframe,t.session,t.strategy,t.poi,t.fibLevel,t.entryPrice||'',t.slPrice||'',t.tpPrice||'',t.closePrice||'',t.duration||'',t.riskValue,t.riskType,t.result,t.rrPlanned,t.rrReal,pl.toFixed(2),t.mentalState,t.rulesFollowed,t.lossCause,t.notes].map(v=>`"${v||''}"`) });
         const csv=[h,...rows].map(r=>r.join(',')).join('\n');
         const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download=`diario_${new Date().toISOString().split('T')[0]}.csv`; a.click();
         showToast('CSV exportado ✓');
