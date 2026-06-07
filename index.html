@@ -939,10 +939,21 @@
 <!-- ===== SECCIÓN: ANÁLISIS ===== -->
 <section id="section-analisis" class="spa-section px-4 pt-4 pb-24">
     <div class="space-y-4">
+
+        <!-- HEATMAP hora × día -->
         <div class="glass-effect p-4">
-            <h3 class="text-sm font-semibold mb-3">Win Rate por Hora</h3>
-            <div id="hourChart" class="chart-container"></div>
+            <div class="flex items-center justify-between mb-1">
+                <h3 class="text-sm font-semibold">Heatmap de Rendimiento</h3>
+                <div class="flex gap-1">
+                    <button id="heatmapToggleWR" class="tab-button active text-xs px-2 py-1">WR%</button>
+                    <button id="heatmapTogglePL" class="tab-button text-xs px-2 py-1">P&L</button>
+                </div>
+            </div>
+            <p class="text-xs text-slate-500 mb-3">Win Rate por hora del día × día de semana</p>
+            <div id="heatmapChart" style="min-height:200px"></div>
+            <div id="bestHoursInsight" class="mt-3 space-y-1"></div>
         </div>
+
         <div class="glass-effect p-4">
             <h3 class="text-sm font-semibold mb-3">Win Rate por Día</h3>
             <div id="dayChart" class="chart-container"></div>
@@ -950,6 +961,15 @@
         <div class="glass-effect p-4">
             <h3 class="text-sm font-semibold mb-3">Win Rate por Sesión</h3>
             <div id="sessionChart" class="chart-container"></div>
+        </div>
+
+        <!-- DURACIÓN -->
+        <div class="glass-effect p-4">
+            <h3 class="text-sm font-semibold mb-1">Análisis de Duración</h3>
+            <p class="text-xs text-slate-500 mb-3">Tiempo promedio en posición por resultado</p>
+            <div id="durationChart" class="chart-container"></div>
+            <div id="durationStats" class="mt-3 grid grid-cols-2 gap-2"></div>
+            <div id="durationEmpty" class="hidden text-xs text-slate-500 text-center py-4">Registra fecha y hora de cierre para ver este análisis.</div>
         </div>
         <!-- Stats detalladas -->
         <div class="glass-effect p-4">
@@ -1832,30 +1852,190 @@ class TradingJournal {
         const trades=this.trades.filter(t=>t.accountId===this.activeAccount&&t.result!=='OPEN');
         if(!trades.length) return;
 
-        // Hora
-        const hS={}; for(let i=0;i<24;i++) hS[i]={w:0,t:0};
-        trades.forEach(t=>{ const h=parseInt((t.time||'00:00').split(':')[0]); if(!isNaN(h)){ hS[h].t++; if(t.result==='WIN') hS[h].w++; } });
-        const hrs=Object.keys(hS).filter(h=>hS[h].t>0);
-        Plotly.newPlot('hourChart',[{x:hrs.map(h=>h+':00'),y:hrs.map(h=>(hS[h].w/hS[h].t*100).toFixed(1)),type:'bar',marker:{color:'#8b5cf6'},text:hrs.map(h=>hS[h].t+'t'),textposition:'outside'}],
-            {xaxis:{color:'#94a3b8'},yaxis:{title:'WR%',color:'#94a3b8'},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:'#94a3b8'},margin:{t:20,b:40,l:45,r:10}},{displayModeBar:false,responsive:true});
+        this._heatmapMode = this._heatmapMode || 'wr';
+        this.renderHeatmap(trades, acc);
+        this.setupHeatmapToggle(trades, acc);
 
-        // Día
+        // ── Win Rate por Día ──────────────────────────────────────────
         const days=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']; const dS={}; days.forEach(d=>dS[d]={w:0,t:0});
         trades.forEach(t=>{ const dn=new Date(t.date+'T12:00:00').getDay(); if(!isNaN(dn)){ const d=days[dn]; dS[d].t++; if(t.result==='WIN') dS[d].w++; } });
         const dK=days.filter(d=>dS[d].t>0);
-        Plotly.newPlot('dayChart',[{x:dK,y:dK.map(d=>(dS[d].w/dS[d].t*100).toFixed(1)),type:'bar',marker:{color:'#f59e0b'},text:dK.map(d=>dS[d].t+'t'),textposition:'outside'}],
-            {xaxis:{color:'#94a3b8'},yaxis:{title:'WR%',color:'#94a3b8'},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:'#94a3b8'},margin:{t:20,b:40,l:45,r:10}},{displayModeBar:false,responsive:true});
+        Plotly.newPlot('dayChart',[{x:dK,y:dK.map(d=>(dS[d].w/dS[d].t*100).toFixed(1)),type:'bar',marker:{color:dK.map(d=>dS[d].w/dS[d].t>=0.5?'#f59e0b':'#ef4444')},text:dK.map(d=>dS[d].t+'t'),textposition:'outside'}],
+            {xaxis:{color:'#94a3b8'},yaxis:{title:'WR%',color:'#94a3b8',range:[0,110]},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:'#94a3b8'},margin:{t:20,b:40,l:45,r:10}},{displayModeBar:false,responsive:true});
 
-        // Sesión
+        // ── Win Rate por Sesión ───────────────────────────────────────
         const sS={}; trades.forEach(t=>{ const s=t.session||'Otra'; if(!sS[s]) sS[s]={w:0,t:0}; sS[s].t++; if(t.result==='WIN') sS[s].w++; });
         const sK=Object.keys(sS);
         Plotly.newPlot('sessionChart',[{x:sK,y:sK.map(s=>(sS[s].w/sS[s].t*100).toFixed(1)),type:'bar',marker:{color:'#14b8a6'},text:sK.map(s=>sS[s].t+'t'),textposition:'outside'}],
-            {xaxis:{color:'#94a3b8'},yaxis:{title:'WR%',color:'#94a3b8'},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:'#94a3b8'},margin:{t:20,b:40,l:45,r:10}},{displayModeBar:false,responsive:true});
+            {xaxis:{color:'#94a3b8'},yaxis:{title:'WR%',color:'#94a3b8',range:[0,110]},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:'#94a3b8'},margin:{t:20,b:40,l:45,r:10}},{displayModeBar:false,responsive:true});
+
+        // ── Duración ─────────────────────────────────────────────────
+        this.renderDurationAnalysis(trades, acc);
 
         this.renderStatBlock('mentalStats', trades, t=>t.mentalState||'Neutro');
         this.renderStatBlock('rulesStats',  trades, t=>t.rulesFollowed||'Sí');
         this.renderStatBlock('lossStats',   trades.filter(t=>t.result==='LOSS'), t=>t.lossCause||'No especificada');
         this.renderStatBlock('fibStats',    trades.filter(t=>t.fibLevel), t=>t.fibLevel+'%');
+    }
+
+    getTradeDuration(t){
+        if(t.duration && t.duration > 0) return t.duration;
+        if(t.date && t.time && t.closeDate && t.closeTime){
+            const diff = new Date(`${t.closeDate}T${t.closeTime}`) - new Date(`${t.date}T${t.time}`);
+            if(diff > 0) return Math.round(diff / 60000);
+        }
+        return null;
+    }
+
+    fmtDur(min){
+        if(min < 60) return min + 'm';
+        const h = Math.floor(min/60), m = min%60;
+        return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    }
+
+    renderHeatmap(trades, acc){
+        const dayOrder=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+        const dowMap={1:'Lun',2:'Mar',3:'Mié',4:'Jue',5:'Vie',6:'Sáb',0:'Dom'};
+        // Build 7×24 matrix
+        const mat={};
+        dayOrder.forEach(d=>{ mat[d]={}; for(let h=0;h<24;h++) mat[d][h]={w:0,l:0,t:0,pl:0}; });
+        trades.forEach(t=>{
+            const h=parseInt((t.time||'00:00').split(':')[0]);
+            const dow=new Date(t.date+'T12:00:00').getDay();
+            const day=dowMap[dow];
+            if(!day||isNaN(h)) return;
+            mat[day][h].t++;
+            if(t.result==='WIN') mat[day][h].w++;
+            else if(t.result==='LOSS') mat[day][h].l++;
+            if(acc) mat[day][h].pl+=this.calcPL(t,acc.initialCapital);
+        });
+        // Only keep hours with at least 1 trade
+        const activeHours=[...new Set(
+            dayOrder.flatMap(d=>Object.keys(mat[d]).filter(h=>mat[d][h].t>0).map(Number))
+        )].sort((a,b)=>a-b);
+        if(!activeHours.length){
+            document.getElementById('heatmapChart').innerHTML='<p class="text-xs text-slate-500 text-center py-8">Sin datos suficientes.</p>';
+            return;
+        }
+        const isWR = this._heatmapMode !== 'pl';
+        const z=dayOrder.map(d=>activeHours.map(h=>{
+            const c=mat[d][h];
+            if(!c.t) return null;
+            return isWR ? parseFloat((c.w/c.t*100).toFixed(1)) : parseFloat(c.pl.toFixed(2));
+        }));
+        const textM=dayOrder.map(d=>activeHours.map(h=>{
+            const c=mat[d][h];
+            if(!c.t) return '';
+            return isWR ? `${(c.w/c.t*100).toFixed(0)}%<br>${c.t}t` : `$${c.pl.toFixed(0)}<br>${c.t}t`;
+        }));
+        const colorscale = isWR
+            ? [[0,'#7f1d1d'],[0.4,'#ef4444'],[0.5,'#f59e0b'],[0.65,'#22c55e'],[1,'#14532d']]
+            : [[0,'#7f1d1d'],[0.5,'#334155'],[1,'#14532d']];
+        Plotly.newPlot('heatmapChart',[{
+            type:'heatmap', z, x:activeHours.map(h=>h+':00'), y:dayOrder,
+            text:textM, hovertemplate:'%{y} %{x}<br>'+(isWR?'WR: %{z}%':'P&L: $%{z}')+'<extra></extra>',
+            colorscale, zmin:isWR?0:undefined, zmax:isWR?100:undefined,
+            showscale:true,
+            colorbar:{tickfont:{color:'#94a3b8',size:9},len:0.8,thickness:10,title:{text:isWR?'WR%':'P&L $',font:{color:'#94a3b8',size:9}}}
+        }],{
+            paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)', font:{color:'#94a3b8'},
+            xaxis:{color:'#94a3b8',tickangle:-60,tickfont:{size:9},tickmode:'array',tickvals:activeHours.map(h=>h+':00')},
+            yaxis:{color:'#94a3b8',tickfont:{size:10}},
+            margin:{t:10,b:65,l:40,r:55}
+        },{displayModeBar:false,responsive:true});
+
+        // Best hours insights
+        const el=document.getElementById('bestHoursInsight'); if(!el) return;
+        // Flatten all hour stats across all days
+        const hourTotals={};
+        dayOrder.forEach(d=>activeHours.forEach(h=>{
+            const c=mat[d][h]; if(!c.t) return;
+            if(!hourTotals[h]) hourTotals[h]={w:0,t:0,pl:0};
+            hourTotals[h].w+=c.w; hourTotals[h].t+=c.t; hourTotals[h].pl+=c.pl;
+        }));
+        const sorted=Object.entries(hourTotals).filter(([,v])=>v.t>=2)
+            .sort((a,b)=>(b[1].w/b[1].t)-(a[1].w/a[1].t));
+        if(!sorted.length){ el.innerHTML=''; return; }
+        const best=sorted[0], worst=sorted[sorted.length-1];
+        const bestWR=(best[1].w/best[1].t*100).toFixed(0);
+        const worstWR=(worst[1].w/worst[1].t*100).toFixed(0);
+        const pills=[];
+        pills.push(`<div class="insight-pill insight-positive" style="display:flex;width:100%;border-radius:.5rem;padding:7px 12px;margin:2px 0"><i class="fas fa-star mr-2"></i><span class="text-xs">Mejor hora: <b>${best[0]}:00</b> — WR ${bestWR}% (${best[1].t} ops)</span></div>`);
+        if(worst[0]!==best[0] && parseInt(worstWR)<50)
+            pills.push(`<div class="insight-pill insight-negative" style="display:flex;width:100%;border-radius:.5rem;padding:7px 12px;margin:2px 0"><i class="fas fa-exclamation-triangle mr-2"></i><span class="text-xs">Peor hora: <b>${worst[0]}:00</b> — WR ${worstWR}% (${worst[1].t} ops)</span></div>`);
+        // Best day
+        const dayTotals={};
+        dayOrder.forEach(d=>{ dayTotals[d]={w:0,t:0};
+            activeHours.forEach(h=>{ const c=mat[d][h]; dayTotals[d].w+=c.w; dayTotals[d].t+=c.t; });
+        });
+        const bestDay=Object.entries(dayTotals).filter(([,v])=>v.t>=2).sort((a,b)=>(b[1].w/b[1].t)-(a[1].w/a[1].t))[0];
+        if(bestDay) pills.push(`<div class="insight-pill insight-neutral" style="display:flex;width:100%;border-radius:.5rem;padding:7px 12px;margin:2px 0"><i class="fas fa-calendar-check mr-2"></i><span class="text-xs">Mejor día: <b>${bestDay[0]}</b> — WR ${(bestDay[1].w/bestDay[1].t*100).toFixed(0)}%</span></div>`);
+        el.innerHTML=pills.join('');
+    }
+
+    setupHeatmapToggle(trades, acc){
+        if(this._heatmapToggleInit) return; this._heatmapToggleInit=true;
+        document.getElementById('heatmapToggleWR')?.addEventListener('click',()=>{
+            this._heatmapMode='wr';
+            document.getElementById('heatmapToggleWR')?.classList.add('active');
+            document.getElementById('heatmapTogglePL')?.classList.remove('active');
+            document.getElementById('heatmapChart').innerHTML='';
+            this.renderHeatmap(trades,acc);
+        });
+        document.getElementById('heatmapTogglePL')?.addEventListener('click',()=>{
+            this._heatmapMode='pl';
+            document.getElementById('heatmapTogglePL')?.classList.add('active');
+            document.getElementById('heatmapToggleWR')?.classList.remove('active');
+            document.getElementById('heatmapChart').innerHTML='';
+            this.renderHeatmap(trades,acc);
+        });
+    }
+
+    renderDurationAnalysis(trades, acc){
+        const chartEl=document.getElementById('durationChart');
+        const statsEl=document.getElementById('durationStats');
+        const emptyEl=document.getElementById('durationEmpty');
+        const tradesWithDur=trades.map(t=>({...t, _dur:this.getTradeDuration(t)})).filter(t=>t._dur!==null&&t._dur>0);
+        if(tradesWithDur.length<3){
+            chartEl?.classList.add('hidden');
+            statsEl?.classList.add('hidden');
+            emptyEl?.classList.remove('hidden');
+            return;
+        }
+        emptyEl?.classList.add('hidden');
+        chartEl?.classList.remove('hidden');
+        statsEl?.classList.remove('hidden');
+
+        // Avg duration per result
+        const groups={WIN:[],LOSS:[],BE:[]};
+        tradesWithDur.forEach(t=>{ if(groups[t.result]) groups[t.result].push(t._dur); });
+        const cats=Object.keys(groups).filter(k=>groups[k].length>0);
+        const avgs=cats.map(k=>groups[k].reduce((a,b)=>a+b,0)/groups[k].length);
+        Plotly.newPlot('durationChart',[{
+            type:'bar', x:cats, y:avgs.map(v=>parseFloat((v/60).toFixed(2))),
+            marker:{color:cats.map(k=>k==='WIN'?'#22c55e':k==='LOSS'?'#ef4444':'#fb923c')},
+            text:avgs.map(v=>this.fmtDur(Math.round(v))), textposition:'outside'
+        }],{
+            xaxis:{color:'#94a3b8'},yaxis:{title:'Horas',color:'#94a3b8'},
+            paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',
+            font:{color:'#94a3b8'},margin:{t:25,b:40,l:50,r:10}
+        },{displayModeBar:false,responsive:true});
+
+        // Stats cards
+        const allDurs=tradesWithDur.map(t=>t._dur);
+        const avgAll=allDurs.reduce((a,b)=>a+b,0)/allDurs.length;
+        const minDur=Math.min(...allDurs), maxDur=Math.max(...allDurs);
+        const winDurs=tradesWithDur.filter(t=>t.result==='WIN').map(t=>t._dur);
+        const lossDurs=tradesWithDur.filter(t=>t.result==='LOSS').map(t=>t._dur);
+        const avgWin=winDurs.length?winDurs.reduce((a,b)=>a+b,0)/winDurs.length:0;
+        const avgLoss=lossDurs.length?lossDurs.reduce((a,b)=>a+b,0)/lossDurs.length:0;
+        const durationEdge=avgWin>0&&avgLoss>0?(avgWin>avgLoss?'Los winners duran más':'Los losses duran más'):'–';
+        statsEl.innerHTML=[
+            {l:'Duración promedio',v:this.fmtDur(Math.round(avgAll)),c:'text-slate-300'},
+            {l:'Más corto',v:this.fmtDur(minDur),c:'text-blue-300'},
+            {l:'Más largo',v:this.fmtDur(maxDur),c:'text-purple-300'},
+            {l:'Edge temporal',v:durationEdge,c:avgWin>avgLoss?'text-green-400':'text-yellow-400'},
+        ].map(s=>`<div class="adv-metric"><div class="adv-label">${s.l}</div><div class="adv-val ${s.c}" style="font-size:1rem">${s.v}</div></div>`).join('');
     }
 
     renderStatBlock(id, trades, keyFn){
