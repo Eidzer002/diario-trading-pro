@@ -1,0 +1,2005 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Diario de Trading Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/3.0.3/plotly.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        * { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        input, select, textarea { font-size: 16px !important; }
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; }
+
+        .glass-effect {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 0.75rem;
+        }
+        .form-input, .form-select {
+            background: rgba(30,41,59,0.8);
+            border: 1px solid rgba(71,85,105,0.5);
+            border-radius: 0.5rem;
+            color: #e2e8f0;
+            padding: 0.5rem 0.75rem;
+            width: 100%;
+            outline: none;
+        }
+        .form-input:focus, .form-select:focus { border-color: #3b82f6; }
+        .form-select option { background: #1e293b; color: #e2e8f0; }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white; border-radius: 0.5rem;
+            padding: 0.5rem 1rem; font-weight: 600;
+            border: none; cursor: pointer;
+        }
+        .btn-secondary {
+            background: rgba(71,85,105,0.5);
+            color: #e2e8f0; border-radius: 0.5rem;
+            padding: 0.5rem 1rem; font-weight: 600;
+            border: 1px solid rgba(71,85,105,0.5); cursor: pointer;
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #22c55e, #15803d);
+            color: white; border-radius: 0.5rem;
+            padding: 0.5rem 1rem; font-weight: 600;
+            border: none; cursor: pointer;
+        }
+        .btn-danger {
+            background: rgba(239,68,68,0.2);
+            color: #f87171; border-radius: 0.5rem;
+            padding: 0.5rem 1rem; font-weight: 600;
+            border: 1px solid rgba(239,68,68,0.3); cursor: pointer;
+        }
+        .btn-warning {
+            background: linear-gradient(135deg, #f59e0b, #b45309);
+            color: white; border-radius: 0.5rem;
+            padding: 0.5rem 1rem; font-weight: 600;
+            border: none; cursor: pointer;
+        }
+
+        /* Modal */
+        .modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.75); z-index: 1000;
+            justify-content: center; align-items: flex-end;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: #1e293b;
+            border-radius: 1.25rem 1.25rem 0 0;
+            width: 100%; max-width: 480px;
+            max-height: 92vh; overflow-y: auto;
+            padding: 1.5rem;
+            animation: slideUp 0.25s ease-out;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        /* SPA */
+        .spa-section { display: none; }
+        .spa-section.active { display: block; }
+        .app-content.hidden { display: none; }
+
+        /* Bottom nav */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(15,23,42,0.97);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            z-index: 100; padding-bottom: env(safe-area-inset-bottom);
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center;
+            padding: 0.6rem 0.5rem; color: #64748b;
+            font-size: 10px; font-weight: 500; flex: 1;
+            background: none; border: none; cursor: pointer;
+            transition: color 0.2s;
+        }
+        .nav-item i { font-size: 18px; margin-bottom: 2px; }
+        .nav-item.active { color: #3b82f6; }
+
+        /* Tab buttons */
+        .tab-button {
+            color: #64748b; background: none;
+            border: 1px solid transparent; cursor: pointer;
+            transition: all 0.2s; border-radius: 0.4rem;
+        }
+        .tab-button.active {
+            color: #3b82f6;
+            background: rgba(59,130,246,0.15);
+            border-color: rgba(59,130,246,0.3);
+        }
+
+        /* Metric cards */
+        .metric-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem; margin-bottom: 1rem;
+        }
+        @media (min-width: 768px) { .metric-grid { grid-template-columns: repeat(4, 1fr); } }
+        .metric-card-mobile {
+            background: rgba(30,41,59,0.5);
+            border: 1px solid rgba(71,85,105,0.3);
+            border-radius: 0.75rem; padding: 1rem; text-align: center;
+        }
+        .metric-card-mobile .icon {
+            width: 36px; height: 36px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 0.5rem;
+        }
+        .metric-card-mobile .value { font-size: 1.4rem; font-weight: 700; color: #e2e8f0; }
+        .metric-card-mobile .label { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+        /* Trade cards */
+        .result-win { background: rgba(34,197,94,0.15); color: #22c55e; border-radius: 0.3rem; padding: 2px 8px; }
+        .result-loss { background: rgba(239,68,68,0.15); color: #ef4444; border-radius: 0.3rem; padding: 2px 8px; }
+        .result-be { background: rgba(251,146,60,0.15); color: #fb923c; border-radius: 0.3rem; padding: 2px 8px; }
+
+        /* Account badges */
+        .account-badge {
+            display: inline-block; padding: 2px 8px;
+            border-radius: 0.3rem; font-size: 10px; font-weight: 600;
+        }
+
+        /* Progress bar */
+        .progress-bar { height: 6px; background: rgba(71,85,105,0.4); border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+
+        /* Conditional sections */
+        .conditional-section { display: none; }
+        .conditional-section.show { display: block; }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 5rem; left: 50%; transform: translateX(-50%);
+            padding: 0.75rem 1.5rem; border-radius: 0.5rem;
+            font-size: 0.875rem; font-weight: 500; z-index: 2000;
+            opacity: 0; transition: opacity 0.3s; pointer-events: none;
+            white-space: nowrap;
+        }
+        .toast.show { opacity: 1; }
+        .toast.success { background: #166534; color: #86efac; border: 1px solid #22c55e; }
+        .toast.error { background: #7f1d1d; color: #fca5a5; border: 1px solid #ef4444; }
+        .toast.info { background: #1e3a5f; color: #93c5fd; border: 1px solid #3b82f6; }
+
+        /* Chart */
+        .chart-container { min-height: 200px; }
+
+        /* Config item */
+        .config-tag {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 10px; border-radius: 1rem; font-size: 11px;
+            background: rgba(59,130,246,0.15); color: #93c5fd;
+            border: 1px solid rgba(59,130,246,0.3); margin: 2px;
+        }
+        .config-tag .remove { cursor: pointer; color: #94a3b8; font-size: 10px; }
+        .config-tag .remove:hover { color: #f87171; }
+
+        /* DD indicator */
+        .dd-ok { color: #22c55e; }
+        .dd-warn { color: #f59e0b; }
+        .dd-danger { color: #ef4444; }
+
+        mb-safe { margin-bottom: 5rem; }
+
+        /* ── FASE 2 ── */
+        /* Calendario PnL */
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 3px;
+        }
+        .cal-header {
+            font-family: 'Inter', sans-serif;
+            font-size: 9px; font-weight: 600;
+            color: #64748b; text-align: center;
+            padding: 3px 0;
+        }
+        .cal-day {
+            aspect-ratio: 1;
+            border-radius: 4px;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            font-size: 9px; cursor: default;
+            position: relative; transition: transform 0.15s;
+        }
+        .cal-day:active { transform: scale(0.92); }
+        .cal-day .cal-num { font-weight: 600; font-size: 9px; line-height: 1; }
+        .cal-day .cal-val { font-size: 7.5px; line-height: 1; margin-top: 1px; }
+        .cal-day.win  { background: rgba(34,197,94,0.22);  color: #4ade80; }
+        .cal-day.loss { background: rgba(239,68,68,0.22);  color: #f87171; }
+        .cal-day.be   { background: rgba(251,146,60,0.15); color: #fb923c; }
+        .cal-day.empty{ background: transparent; }
+        .cal-day.today{ box-shadow: 0 0 0 1.5px #3b82f6; }
+        .cal-month-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+
+        /* Métricas avanzadas */
+        .adv-metric {
+            background: rgba(30,41,59,0.5);
+            border: 1px solid rgba(71,85,105,0.3);
+            border-radius: 0.6rem; padding: 12px 14px;
+        }
+        .adv-metric .adv-label { font-size: 9px; color: #64748b; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
+        .adv-metric .adv-val   { font-size: 1.25rem; font-weight: 700; line-height: 1; }
+        .adv-metric .adv-sub   { font-size: 9px; color: #64748b; margin-top: 3px; }
+
+        /* Streak pill */
+        .streak-pill {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 12px; border-radius: 2rem; font-size: 12px; font-weight: 700;
+        }
+        .streak-win  { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+        .streak-loss { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+        .streak-none { background: rgba(71,85,105,0.2);  color: #94a3b8;  border: 1px solid rgba(71,85,105,0.3); }
+
+        /* Multi-account tab selector */
+        .acc-tab {
+            padding: 5px 12px; border-radius: 1rem; font-size: 11px; font-weight: 600;
+            border: 1px solid rgba(71,85,105,0.4); cursor: pointer; white-space: nowrap;
+            background: transparent; color: #64748b; transition: all .18s;
+        }
+        .acc-tab.active { color: #fff; }
+
+        /* ── FASE 3 ── */
+        /* Calculadora de lotaje */
+        .lot-calc {
+            background: rgba(59,130,246,0.08);
+            border: 1px solid rgba(59,130,246,0.25);
+            border-radius: 0.5rem; padding: 10px 14px; margin-top: 8px;
+        }
+        .lot-calc .lot-result {
+            font-size: 1.3rem; font-weight: 700;
+            color: #60a5fa; text-align: center; margin: 4px 0;
+        }
+        .lot-calc .lot-label { font-size: 9px; color: #64748b; text-align: center; text-transform: uppercase; letter-spacing: .08em; }
+
+        /* Psychology card */
+        .psych-card {
+            border-radius: 0.6rem; padding: 12px 14px; margin-bottom: 8px;
+            border: 1px solid rgba(71,85,105,0.3);
+        }
+        .psych-bar { height: 5px; border-radius: 3px; background: rgba(71,85,105,0.3); overflow: hidden; margin-top: 4px; }
+        .psych-fill { height: 100%; border-radius: 3px; }
+
+        /* Review section */
+        .review-card {
+            background: rgba(30,41,59,0.5);
+            border: 1px solid rgba(71,85,105,0.3);
+            border-radius: 0.6rem; padding: 14px;
+        }
+        .review-card h4 { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 8px; }
+        .review-item { font-size: 12px; color: #94a3b8; padding: 4px 0; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(71,85,105,0.2); }
+        .review-item:last-child { border: none; }
+        .review-item span { color: #e2e8f0; font-weight: 600; }
+
+        /* Insight pill */
+        .insight-pill {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 5px 12px; border-radius: 1rem; font-size: 11px;
+            margin: 3px; cursor: default;
+        }
+        .insight-positive { background: rgba(34,197,94,0.12); color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
+        .insight-negative { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+        .insight-neutral  { background: rgba(251,146,60,0.12); color: #fb923c; border: 1px solid rgba(251,146,60,0.25); }
+
+        /* Risk manager card */
+        .risk-manager { background: rgba(15,23,42,0.7); border: 1px solid rgba(71,85,105,0.4); border-radius: 0.75rem; padding: 14px; }
+        .risk-row { display: flex; justify-content: space-between; font-size: 12px; padding: 5px 0; border-bottom: 1px solid rgba(71,85,105,0.2); }
+        .risk-row:last-child { border: none; }
+        .risk-k { color: #64748b; }
+    </style>
+</head>
+<body class="text-slate-300">
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<!-- ===== MODAL: PRIMERA VEZ / CONFIGURACIÓN INICIAL ===== -->
+<div id="setupModal" class="modal">
+    <div class="modal-content">
+        <div class="text-center mb-5">
+            <div class="text-4xl mb-2">📊</div>
+            <h2 class="text-xl font-bold text-white">Bienvenido a tu Diario</h2>
+            <p class="text-sm text-slate-400 mt-1">Configura tu primera cuenta para empezar</p>
+        </div>
+        <form id="setupForm" class="space-y-4" novalidate>
+            <div>
+                <label class="block text-xs font-medium mb-1">Nombre de la cuenta *</label>
+                <input type="text" id="setupAccountName" class="form-input" placeholder="Ej: Cuenta Principal, FTMO $10k..." required>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium mb-1">Capital inicial *</label>
+                    <input type="number" id="setupCapital" class="form-input" placeholder="10000" step="0.01" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium mb-1">DD máximo %</label>
+                    <input type="number" id="setupMaxDD" class="form-input" placeholder="8" step="0.1">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium mb-1">Objetivo ganancia %</label>
+                    <input type="number" id="setupTarget" class="form-input" placeholder="10" step="0.1">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium mb-1">Riesgo/trade %</label>
+                    <input type="number" id="setupRisk" class="form-input" placeholder="1" step="0.1">
+                </div>
+            </div>
+            <button type="submit" class="btn-primary w-full py-3 mt-2">
+                <i class="fas fa-rocket mr-2"></i>Comenzar
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- ===== MODAL: NUEVA CUENTA ===== -->
+<div id="newAccountModal" class="modal">
+    <div class="modal-content">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">Nueva Cuenta</h3>
+            <button onclick="closeModal('newAccountModal')" class="text-slate-400 hover:text-white p-2"><i class="fas fa-times"></i></button>
+        </div>
+        <form id="newAccountForm" class="space-y-4" novalidate>
+            <div>
+                <label class="block text-xs font-medium mb-1">Nombre *</label>
+                <input type="text" id="naName" class="form-input" placeholder="FTMO $10k, QvaFunded..." required>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium mb-1">Capital inicial *</label>
+                    <input type="number" id="naCapital" class="form-input" placeholder="10000" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium mb-1">DD máximo %</label>
+                    <input type="number" id="naMaxDD" class="form-input" placeholder="8">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium mb-1">Objetivo %</label>
+                    <input type="number" id="naTarget" class="form-input" placeholder="10">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium mb-1">Riesgo/trade %</label>
+                    <input type="number" id="naRisk" class="form-input" placeholder="1">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-medium mb-1">Color identificador</label>
+                <div id="colorPicker" class="flex gap-2 flex-wrap mt-1">
+                    <div class="color-opt w-8 h-8 rounded-full cursor-pointer border-2 border-transparent" style="background:#3b82f6" data-color="#3b82f6"></div>
+                    <div class="color-opt w-8 h-8 rounded-full cursor-pointer border-2 border-transparent" style="background:#22c55e" data-color="#22c55e"></div>
+                    <div class="color-opt w-8 h-8 rounded-full cursor-pointer border-2 border-transparent" style="background:#f59e0b" data-color="#f59e0b"></div>
+                    <div class="color-opt w-8 h-8 rounded-full cursor-pointer border-2 border-transparent" style="background:#8b5cf6" data-color="#8b5cf6"></div>
+                    <div class="color-opt w-8 h-8 rounded-full cursor-pointer border-2 border-transparent" style="background:#ec4899" data-color="#ec4899"></div>
+                    <div class="color-opt w-8 h-8 rounded-full cursor-pointer border-2 border-transparent" style="background:#14b8a6" data-color="#14b8a6"></div>
+                </div>
+                <input type="hidden" id="naColor" value="#3b82f6">
+            </div>
+            <div class="flex space-x-3">
+                <button type="submit" class="btn-primary flex-1 py-3">Crear Cuenta</button>
+                <button type="button" onclick="closeModal('newAccountModal')" class="btn-secondary flex-1 py-3">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ===== MODAL: NUEVA OPERACIÓN ===== -->
+<div id="addTradeModal" class="modal">
+    <div class="modal-content">
+        <div class="flex items-center justify-between mb-4">
+            <h3 id="modalTradeTitle" class="text-lg font-semibold">Nueva Operación</h3>
+            <button onclick="journal.closeTradeModal()" class="text-slate-400 hover:text-white p-2"><i class="fas fa-times text-lg"></i></button>
+        </div>
+        <form id="tradeForm" class="space-y-4" novalidate>
+
+            <!-- CUENTA -->
+            <div>
+                <label class="block text-xs font-medium mb-1 text-blue-400"><i class="fas fa-wallet mr-1"></i>Cuenta *</label>
+                <select id="tradeAccount" class="form-select" required></select>
+            </div>
+
+            <!-- INFO BÁSICA -->
+            <div class="space-y-3">
+                <h4 class="font-semibold text-blue-400 text-sm"><i class="fas fa-calendar mr-2"></i>Información Básica</h4>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Fecha *</label>
+                        <input type="date" id="tradeDate" class="form-input text-sm" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Hora entrada</label>
+                        <input type="time" id="tradeTime" class="form-input text-sm">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Activo *</label>
+                        <input type="text" id="tradePair" class="form-input text-sm" placeholder="XAUUSD, NAS100..." required list="pairSuggestions">
+                        <datalist id="pairSuggestions"></datalist>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Dirección</label>
+                        <select id="tradeDirection" class="form-select text-sm">
+                            <option value="">-</option>
+                            <option value="LONG">LONG ↑</option>
+                            <option value="SHORT">SHORT ↓</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Timeframe</label>
+                        <select id="tradeTimeframe" class="form-select text-sm">
+                            <option value="">-</option>
+                            <option value="M15">M15</option>
+                            <option value="M30">M30</option>
+                            <option value="H1">H1</option>
+                            <option value="H4">H4</option>
+                            <option value="D1">D1</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Sesión</label>
+                        <select id="tradeSession" class="form-select text-sm">
+                            <option value="">-</option>
+                            <option value="Asiática">Asiática</option>
+                            <option value="London">London</option>
+                            <option value="New York">New York</option>
+                            <option value="Overlap">Overlap</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SETUP Y CONTEXTO -->
+            <div class="space-y-3">
+                <h4 class="font-semibold text-blue-400 text-sm"><i class="fas fa-chart-line mr-2"></i>Setup y Contexto</h4>
+                <div>
+                    <label class="block text-xs font-medium mb-1">Estrategia</label>
+                    <select id="tradeStrategy" class="form-select text-sm">
+                        <option value="">-</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Setup / POI</label>
+                        <select id="tradePOI" class="form-select text-sm">
+                            <option value="">-</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Nivel Fibonacci</label>
+                        <select id="tradeFibLevel" class="form-select text-sm">
+                            <option value="">-</option>
+                            <option value="38.2">38.2%</option>
+                            <option value="50.0">50.0%</option>
+                            <option value="61.8">61.8%</option>
+                            <option value="71.0">71.0%</option>
+                            <option value="74.0">74.0%</option>
+                            <option value="78.6">78.6%</option>
+                            <option value="88.0">88.0%</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Tendencia HTF</label>
+                        <select id="tradeTrendHTF" class="form-select text-sm">
+                            <option value="">-</option>
+                            <option value="Alcista">Alcista</option>
+                            <option value="Bajista">Bajista</option>
+                            <option value="Lateral">Lateral</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">HTF alineado</label>
+                        <select id="tradeAligned" class="form-select text-sm">
+                            <option value="">-</option>
+                            <option value="Sí">Sí</option>
+                            <option value="No">No</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium mb-1">Confluencias adicionales</label>
+                    <input type="text" id="confluenceDetails" class="form-input text-sm" placeholder="BPR, EMA200, zona clave...">
+                </div>
+            </div>
+
+            <!-- PRECIOS -->
+            <div class="space-y-3">
+                <h4 class="font-semibold text-blue-400 text-sm"><i class="fas fa-crosshairs mr-2"></i>Precios</h4>
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Entrada</label>
+                        <input type="number" id="tradeEntryPrice" class="form-input text-sm" step="any" placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Stop Loss</label>
+                        <input type="number" id="tradeSLPrice" class="form-input text-sm" step="any" placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Take Profit</label>
+                        <input type="number" id="tradeTPPrice" class="form-input text-sm" step="any" placeholder="0.00">
+                    </div>
+                </div>
+            </div>
+
+            <!-- FASE 3: Calculadora de lotaje integrada -->
+            <div class="space-y-3">
+                <h4 class="font-semibold text-blue-400 text-sm"><i class="fas fa-calculator mr-2"></i>Calculadora de Lotaje</h4>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Precio entrada</label>
+                        <input type="number" id="calcEntry" class="form-input text-sm" step="any" placeholder="Ej: 3250.50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Precio SL</label>
+                        <input type="number" id="calcSL" class="form-input text-sm" step="any" placeholder="Ej: 3240.00">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Valor pip/punto</label>
+                        <input type="number" id="calcPipVal" class="form-input text-sm" step="any" placeholder="Ej: 1 (XAU), 0.1 (NAS)">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Capital cuenta ($)</label>
+                        <input type="number" id="calcCapital" class="form-input text-sm" step="any" placeholder="Auto desde cuenta">
+                    </div>
+                </div>
+                <div id="lotCalcResult" class="lot-calc hidden">
+                    <div class="lot-label">Tamaño de posición recomendado</div>
+                    <div class="lot-result" id="lotResultValue">-</div>
+                    <div class="lot-label" id="lotResultDetail">-</div>
+                    <div class="grid grid-cols-3 gap-2 mt-3 text-center">
+                        <div><div class="text-xs text-slate-500">Riesgo $</div><div class="text-sm font-bold text-yellow-400" id="lotRiskDollar">-</div></div>
+                        <div><div class="text-xs text-slate-500">Dist. SL</div><div class="text-sm font-bold text-slate-300" id="lotDistSL">-</div></div>
+                        <div><div class="text-xs text-slate-500">TP est.</div><div class="text-sm font-bold text-green-400" id="lotTPEst">-</div></div>
+                    </div>
+                </div>
+                <button type="button" id="calcLotBtn" class="btn-secondary w-full text-xs py-2"><i class="fas fa-calculator mr-1"></i>Calcular Lote</button>
+            </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Tipo</label>
+                        <select id="riskType" class="form-select text-sm">
+                            <option value="percentage">%</option>
+                            <option value="amount">$</option>
+                        </select>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-medium mb-1">Riesgo *</label>
+                        <input type="number" id="riskValue" class="form-input text-sm" step="0.01" placeholder="1" required>
+                    </div>
+                </div>
+                <div id="riskCalcDisplay" class="text-xs text-slate-400 bg-slate-800/50 rounded p-2 hidden">
+                    Riesgo en $: <span id="riskInDollars" class="text-yellow-400 font-semibold">-</span>
+                </div>
+            </div>
+
+            <!-- ESTADO PSICOLÓGICO -->
+            <div class="space-y-3">
+                <h4 class="font-semibold text-blue-400 text-sm"><i class="fas fa-brain mr-2"></i>Estado Psicológico</h4>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Estado mental</label>
+                        <select id="tradeMentalState" class="form-select text-sm">
+                            <option value="Neutro">Neutro 😐</option>
+                            <option value="Confiado">Confiado 💪</option>
+                            <option value="Ansioso">Ansioso 😰</option>
+                            <option value="Eufórico">Eufórico 🤩</option>
+                            <option value="Venganza">Venganza 😤</option>
+                            <option value="Aburrido">Aburrido 😴</option>
+                            <option value="Miedo">Miedo 😨</option>
+                            <option value="FOMO">FOMO 🏃</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">¿Seguiste tus reglas?</label>
+                        <select id="tradeRulesFollowed" class="form-select text-sm">
+                            <option value="Sí">Sí ✅</option>
+                            <option value="Parcial">Parcial ⚠️</option>
+                            <option value="No">No ❌</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="conditional-section" id="rulesBreakSection">
+                    <label class="block text-xs font-medium mb-1">¿Qué regla incumpliste?</label>
+                    <input type="text" id="tradeRulesBreak" class="form-input text-sm" placeholder="Entré sin estructura confirmada...">
+                </div>
+            </div>
+
+            <!-- RESULTADO -->
+            <div class="space-y-3">
+                <h4 class="font-semibold text-blue-400 text-sm"><i class="fas fa-trophy mr-2"></i>Resultado</h4>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium mb-1">R:R Planificado *</label>
+                        <input type="number" step="0.1" id="tradeRRPlanned" class="form-input text-sm" placeholder="2" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Resultado *</label>
+                        <select id="tradeResult" class="form-select text-sm" required>
+                            <option value="">-</option>
+                            <option value="WIN">WIN ✅</option>
+                            <option value="LOSS">LOSS ❌</option>
+                            <option value="BE">BE ➡️</option>
+                            <option value="OPEN">OPEN 🔓</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium mb-1">R:R Real (si está cerrado)</label>
+                    <input type="number" step="0.1" id="tradeRRReal" class="form-input text-sm" placeholder="1.8">
+                </div>
+            </div>
+
+            <!-- CAUSA LOSS -->
+            <div class="space-y-3 conditional-section" id="lossCauseSection">
+                <h4 class="font-semibold text-red-400 text-sm"><i class="fas fa-search mr-2"></i>Análisis del LOSS</h4>
+                <select id="tradeLossCause" class="form-select text-sm">
+                    <option value="">Seleccionar causa</option>
+                    <option value="Fallo Técnico">Fallo Técnico</option>
+                    <option value="Noticia/Evento">Noticia / Evento</option>
+                    <option value="Error Ejecución">Error Ejecución</option>
+                    <option value="Error Psicológico">Error Psicológico</option>
+                    <option value="Regla Incumplida">Regla Incumplida</option>
+                    <option value="SL Justo">SL Demasiado Justo</option>
+                    <option value="Mercado">Mercado en contra</option>
+                </select>
+                <label class="flex items-center text-sm cursor-pointer gap-2">
+                    <input type="checkbox" id="tradeIgnoredNews">
+                    <span class="text-yellow-400 text-xs">Evento externo (hubiera evitado en vivo)</span>
+                </label>
+            </div>
+
+            <!-- CIERRE -->
+            <div class="space-y-3">
+                <h4 class="font-semibold text-blue-400 text-sm"><i class="fas fa-clock mr-2"></i>Cierre</h4>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Fecha cierre</label>
+                        <input type="date" id="tradeCloseDate" class="form-input text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Hora cierre</label>
+                        <input type="time" id="tradeCloseTime" class="form-input text-sm">
+                    </div>
+                </div>
+            </div>
+
+            <!-- NOTAS -->
+            <div class="space-y-3">
+                <h4 class="font-semibold text-blue-400 text-sm"><i class="fas fa-sticky-note mr-2"></i>Notas Post-Trade</h4>
+                <textarea id="tradeNotes" rows="3" class="form-input text-sm" placeholder="¿Qué salió bien? ¿Qué mejorarías? Observaciones..."></textarea>
+            </div>
+
+            <div class="flex space-x-3 pt-4 border-t border-slate-700">
+                <button type="submit" class="btn-primary flex-1 py-3"><i class="fas fa-save mr-2"></i>Guardar</button>
+                <button type="button" onclick="journal.closeTradeModal()" class="btn-secondary flex-1 py-3">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ===== HEADER ===== -->
+<header style="background:rgba(15,23,42,0.97);border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:0;z-index:99;">
+    <div class="flex items-center justify-between px-4 py-3">
+        <div class="flex items-center gap-2">
+            <div class="text-xl">📊</div>
+            <span class="font-bold text-white text-sm">Diario de Trading</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <select id="accountSelector" class="form-select text-xs py-1 px-2" style="min-width:120px"></select>
+        </div>
+    </div>
+</header>
+
+<!-- ===== SECCIÓN: DASHBOARD ===== -->
+<section id="section-dashboard" class="spa-section active px-4 pt-4 pb-24">
+
+    <!-- Account summary card -->
+    <div id="accountSummaryCard" class="glass-effect p-4 mb-4">
+        <div class="flex items-center justify-between mb-3">
+            <div>
+                <div id="dashAccountName" class="font-bold text-white text-sm">-</div>
+                <div id="dashAccountType" class="text-xs text-slate-400">-</div>
+            </div>
+            <div class="text-right">
+                <div id="dashCurrentBalance" class="text-xl font-bold text-white">$0.00</div>
+                <div id="dashPnl" class="text-xs font-semibold">+$0.00 (0.00%)</div>
+            </div>
+        </div>
+        <!-- DD Progress -->
+        <div id="ddSection" class="hidden">
+            <div class="flex justify-between text-xs mb-1">
+                <span class="text-slate-400">DD actual</span>
+                <span id="ddLabel" class="font-semibold">0.00%</span>
+            </div>
+            <div class="progress-bar mb-2">
+                <div id="ddFill" class="progress-fill" style="width:0%;background:#22c55e"></div>
+            </div>
+            <div class="flex justify-between text-xs mb-1">
+                <span class="text-slate-400">Objetivo</span>
+                <span id="targetLabel" class="font-semibold text-green-400">0.00%</span>
+            </div>
+            <div class="progress-bar">
+                <div id="targetFill" class="progress-fill" style="width:0%;background:#22c55e"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="metric-grid">
+        <div class="metric-card-mobile">
+            <div class="icon bg-green-500/20"><i class="fas fa-percentage text-green-400"></i></div>
+            <div class="value" id="dashWinRate">0%</div>
+            <div class="label">Win Rate Real</div>
+            <div class="text-xs text-slate-400 mt-1"><span id="dashTotalTrades">0</span> ops</div>
+        </div>
+        <div class="metric-card-mobile">
+            <div class="icon bg-blue-500/20"><i class="fas fa-balance-scale text-blue-400"></i></div>
+            <div class="value" id="dashPF">0.00</div>
+            <div class="label">Profit Factor</div>
+            <div class="text-xs text-slate-400 mt-1">Ganancias/Pérdidas</div>
+        </div>
+        <div class="metric-card-mobile">
+            <div class="icon bg-yellow-500/20"><i class="fas fa-chart-line text-yellow-400"></i></div>
+            <div class="value" id="dashAvgRR">0.00</div>
+            <div class="label">R:R Promedio</div>
+            <div class="text-xs text-slate-400 mt-1">Plan: <span id="dashPlannedRR">0.00</span></div>
+        </div>
+        <div class="metric-card-mobile">
+            <div class="icon bg-red-500/20"><i class="fas fa-arrow-down text-red-400"></i></div>
+            <div class="value" id="dashMaxDD">0%</div>
+            <div class="label">Max Drawdown</div>
+            <div class="text-xs text-slate-400 mt-1">Racha: <span id="dashStreak">0</span></div>
+        </div>
+    </div>
+
+    <!-- FASE 2: Racha actual + métricas avanzadas -->
+    <div class="glass-effect p-4 mb-4">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold">Racha Actual</h3>
+            <div id="currentStreakPill" class="streak-pill streak-none"><i class="fas fa-minus"></i> Sin datos</div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+            <div class="adv-metric">
+                <div class="adv-label">Expectativa / Trade</div>
+                <div class="adv-val" id="dashExpectancy">$0.00</div>
+                <div class="adv-sub">Promedio por operación</div>
+            </div>
+            <div class="adv-metric">
+                <div class="adv-label">Sharpe (Mensual)</div>
+                <div class="adv-val" id="dashSharpe">0.00</div>
+                <div class="adv-sub">Retorno / Volatilidad</div>
+            </div>
+            <div class="adv-metric">
+                <div class="adv-label">Mejor Racha</div>
+                <div class="adv-val green" id="dashBestStreak">0</div>
+                <div class="adv-sub">Wins consecutivos</div>
+            </div>
+            <div class="adv-metric">
+                <div class="adv-label">Peor Racha</div>
+                <div class="adv-val red" id="dashWorstStreak">0</div>
+                <div class="adv-sub">Losses consecutivos</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FASE 2: Multi-cuenta tabs -->
+    <div class="glass-effect p-4 mb-4">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold">Resumen de Cuentas</h3>
+        </div>
+        <div id="multiAccTabs" class="flex gap-2 overflow-x-auto pb-2 mb-3" style="scrollbar-width:none"></div>
+        <div id="multiAccStats" class="space-y-2"></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="space-y-4">
+        <div class="glass-effect p-4">
+            <h3 class="text-sm font-semibold mb-3">Distribución de Resultados</h3>
+            <div id="resultsChart" class="chart-container"></div>
+        </div>
+        <div class="glass-effect p-4">
+            <h3 class="text-sm font-semibold mb-3">Evolución del Capital</h3>
+            <div id="capitalChart" class="chart-container"></div>
+        </div>
+
+        <!-- FASE 2: Drawdown separado -->
+        <div class="glass-effect p-4">
+            <h3 class="text-sm font-semibold mb-1">Drawdown Histórico</h3>
+            <p class="text-xs text-slate-500 mb-3">Caída desde el máximo de capital</p>
+            <div id="ddHistChart" class="chart-container"></div>
+        </div>
+
+        <div class="glass-effect p-4">
+            <h3 class="text-sm font-semibold mb-3">Win Rate por Setup</h3>
+            <div id="setupChart" class="chart-container"></div>
+        </div>
+        <div class="glass-effect p-4">
+            <h3 class="text-sm font-semibold mb-3">Rendimiento por Activo</h3>
+            <div id="pairChart" class="chart-container"></div>
+        </div>
+
+        <!-- FASE 2: Calendario mensual PnL -->
+        <div class="glass-effect p-4">
+            <div class="cal-month-nav">
+                <button id="calPrev" class="btn-secondary text-xs py-1 px-3"><i class="fas fa-chevron-left"></i></button>
+                <h3 class="text-sm font-semibold" id="calTitle">Mayo 2025</h3>
+                <button id="calNext" class="btn-secondary text-xs py-1 px-3"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <div class="cal-grid mb-2">
+                <div class="cal-header">Dom</div><div class="cal-header">Lun</div>
+                <div class="cal-header">Mar</div><div class="cal-header">Mié</div>
+                <div class="cal-header">Jue</div><div class="cal-header">Vie</div>
+                <div class="cal-header">Sáb</div>
+            </div>
+            <div id="calGrid" class="cal-grid"></div>
+            <!-- Leyenda del mes -->
+            <div id="calMonthSummary" class="mt-3 grid grid-cols-3 gap-2 text-center text-xs"></div>
+        </div>
+
+        <!-- FASE 2: Distribución de PnL por día de la semana -->
+        <div class="glass-effect p-4">
+            <h3 class="text-sm font-semibold mb-3">P&L por Día de Semana</h3>
+            <div id="pnlDayChart" class="chart-container"></div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== SECCIÓN: REGISTRO ===== -->
+<section id="section-registro" class="spa-section px-4 pt-4 pb-24">
+
+    <!-- Filtros -->
+    <div class="glass-effect p-4 mb-4">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold">Filtros</h3>
+            <button id="toggleFilters" class="text-xs text-blue-400"><i class="fas fa-sliders-h mr-1"></i>Mostrar</button>
+        </div>
+        <div id="filterPanel" class="hidden space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs mb-1">Cuenta</label>
+                    <select id="filterAccount" class="form-select text-xs">
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs mb-1">Activo</label>
+                    <select id="filterPair" class="form-select text-xs"><option value="">Todos</option></select>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs mb-1">Resultado</label>
+                    <select id="filterResult" class="form-select text-xs">
+                        <option value="">Todos</option>
+                        <option value="WIN">WIN</option>
+                        <option value="LOSS">LOSS</option>
+                        <option value="BE">BE</option>
+                        <option value="OPEN">OPEN</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs mb-1">Estado mental</label>
+                    <select id="filterMentalState" class="form-select text-xs">
+                        <option value="">Todos</option>
+                        <option value="Neutro">Neutro</option>
+                        <option value="Confiado">Confiado</option>
+                        <option value="Ansioso">Ansioso</option>
+                        <option value="Eufórico">Eufórico</option>
+                        <option value="Venganza">Venganza</option>
+                        <option value="FOMO">FOMO</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs mb-1">Desde</label>
+                    <input type="date" id="filterFromDate" class="form-input text-xs">
+                </div>
+                <div>
+                    <label class="block text-xs mb-1">Hasta</label>
+                    <input type="date" id="filterToDate" class="form-input text-xs">
+                </div>
+            </div>
+            <div class="flex space-x-2">
+                <button id="applyFilters" class="btn-primary flex-1 text-xs py-2">Filtrar</button>
+                <button id="clearFilters" class="btn-secondary flex-1 text-xs py-2">Limpiar</button>
+            </div>
+        </div>
+    </div>
+
+    <button id="addTradeBtn" class="btn-success w-full mb-4 py-3">
+        <i class="fas fa-plus mr-2"></i>Nueva Operación
+    </button>
+
+    <div id="tradesList"></div>
+</section>
+
+<!-- ===== SECCIÓN: ANÁLISIS ===== -->
+<section id="section-analisis" class="spa-section px-4 pt-4 pb-24">
+    <div class="space-y-4">
+        <div class="glass-effect p-4">
+            <h3 class="text-sm font-semibold mb-3">Win Rate por Hora</h3>
+            <div id="hourChart" class="chart-container"></div>
+        </div>
+        <div class="glass-effect p-4">
+            <h3 class="text-sm font-semibold mb-3">Win Rate por Día</h3>
+            <div id="dayChart" class="chart-container"></div>
+        </div>
+        <div class="glass-effect p-4">
+            <h3 class="text-sm font-semibold mb-3">Win Rate por Sesión</h3>
+            <div id="sessionChart" class="chart-container"></div>
+        </div>
+        <!-- Stats detalladas -->
+        <div class="glass-effect p-4">
+            <h3 class="text-sm font-semibold mb-3">Estadísticas Detalladas</h3>
+            <div class="space-y-3">
+                <div class="bg-slate-800/40 rounded-lg p-3">
+                    <h4 class="text-xs font-semibold text-slate-300 mb-2">Estado Mental vs Resultado</h4>
+                    <div id="mentalStats" class="space-y-1 text-xs"></div>
+                </div>
+                <div class="bg-slate-800/40 rounded-lg p-3">
+                    <h4 class="text-xs font-semibold text-slate-300 mb-2">Adherencia a Reglas</h4>
+                    <div id="rulesStats" class="space-y-1 text-xs"></div>
+                </div>
+                <div class="bg-slate-800/40 rounded-lg p-3">
+                    <h4 class="text-xs font-semibold text-slate-300 mb-2">Causas de Pérdida</h4>
+                    <div id="lossStats" class="space-y-1 text-xs"></div>
+                </div>
+                <div class="bg-slate-800/40 rounded-lg p-3">
+                    <h4 class="text-xs font-semibold text-slate-300 mb-2">Niveles Fibonacci</h4>
+                    <div id="fibStats" class="space-y-1 text-xs"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== SECCIÓN: CONFIGURACIÓN ===== -->
+<section id="section-config" class="spa-section px-4 pt-4 pb-24">
+
+    <!-- Cuentas -->
+    <div class="glass-effect p-4 mb-4">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold">Cuentas</h3>
+            <button onclick="openModal('newAccountModal')" class="btn-primary text-xs py-1 px-3"><i class="fas fa-plus mr-1"></i>Nueva</button>
+        </div>
+        <div id="accountsList" class="space-y-2"></div>
+    </div>
+
+    <!-- Activos favoritos -->
+    <div class="glass-effect p-4 mb-4">
+        <h3 class="text-sm font-semibold mb-3">Activos Favoritos</h3>
+        <p class="text-xs text-slate-400 mb-3">Aparecerán como sugerencias al registrar operaciones</p>
+        <div class="flex gap-2 mb-3">
+            <input type="text" id="newPairInput" class="form-input text-sm flex-1" placeholder="XAUUSD, NAS100...">
+            <button id="addPairBtn" class="btn-primary text-sm px-3">+</button>
+        </div>
+        <div id="pairTagsContainer" class="flex flex-wrap gap-1"></div>
+    </div>
+
+    <!-- Estrategias -->
+    <div class="glass-effect p-4 mb-4">
+        <h3 class="text-sm font-semibold mb-3">Estrategias</h3>
+        <p class="text-xs text-slate-400 mb-3">Define las estrategias que operas</p>
+        <div class="flex gap-2 mb-3">
+            <input type="text" id="newStrategyInput" class="form-input text-sm flex-1" placeholder="SMC/ICT, Scalping...">
+            <button id="addStrategyBtn" class="btn-primary text-sm px-3">+</button>
+        </div>
+        <div id="strategyTagsContainer" class="flex flex-wrap gap-1"></div>
+    </div>
+
+    <!-- Setups / POIs -->
+    <div class="glass-effect p-4 mb-4">
+        <h3 class="text-sm font-semibold mb-3">Setups / Zonas de Entrada (POI)</h3>
+        <p class="text-xs text-slate-400 mb-3">Define los setups que usas en tu estrategia</p>
+        <div class="flex gap-2 mb-3">
+            <input type="text" id="newSetupInput" class="form-input text-sm flex-1" placeholder="BPR, OB+FVG, EMA Bounce...">
+            <button id="addSetupBtn" class="btn-primary text-sm px-3">+</button>
+        </div>
+        <div id="setupTagsContainer" class="flex flex-wrap gap-1"></div>
+    </div>
+
+    <!-- Acciones -->
+    <div class="glass-effect p-4 mb-4">
+        <h3 class="text-sm font-semibold mb-3">Datos</h3>
+        <div class="space-y-2">
+            <button id="exportBtn" class="btn-secondary w-full py-2 text-sm">
+                <i class="fas fa-download mr-2"></i>Exportar CSV
+            </button>
+            <button id="exportJsonBtn" class="btn-secondary w-full py-2 text-sm">
+                <i class="fas fa-file-export mr-2"></i>Backup JSON
+            </button>
+            <button id="importJsonBtn" class="btn-secondary w-full py-2 text-sm">
+                <i class="fas fa-file-import mr-2"></i>Restaurar Backup
+            </button>
+            <input type="file" id="importJsonInput" accept=".json" class="hidden">
+        </div>
+    </div>
+
+    <div class="glass-effect p-4">
+        <h3 class="text-sm font-semibold mb-1 text-red-400">Zona de Peligro</h3>
+        <p class="text-xs text-slate-400 mb-3">Esta acción no se puede deshacer</p>
+        <button id="resetAllBtn" class="btn-danger w-full py-2 text-sm">
+            <i class="fas fa-trash mr-2"></i>Borrar todos los datos
+        </button>
+    </div>
+</section>
+
+<!-- ===== SECCIÓN: PSICOLOGÍA (FASE 3) ===== -->
+<section id="section-psicologia" class="spa-section px-4 pt-4 pb-24">
+
+    <!-- Risk Manager -->
+    <div class="glass-effect p-4 mb-4">
+        <h3 class="text-sm font-semibold mb-3"><i class="fas fa-shield-alt mr-2 text-blue-400"></i>Gestor de Riesgo en Vivo</h3>
+        <div id="riskManagerContent" class="space-y-3">
+            <p class="text-xs text-slate-500">Selecciona una cuenta para ver el análisis.</p>
+        </div>
+    </div>
+
+    <!-- Insights automáticos -->
+    <div class="glass-effect p-4 mb-4">
+        <h3 class="text-sm font-semibold mb-2"><i class="fas fa-lightbulb mr-2 text-yellow-400"></i>Insights del Sistema</h3>
+        <p class="text-xs text-slate-500 mb-3">Patrones detectados automáticamente en tus datos</p>
+        <div id="insightsContainer" class="space-y-2">
+            <p class="text-xs text-slate-500">Sin suficientes datos. Registra al menos 10 operaciones.</p>
+        </div>
+    </div>
+
+    <!-- Psicología detallada -->
+    <div class="glass-effect p-4 mb-4">
+        <h3 class="text-sm font-semibold mb-3"><i class="fas fa-brain mr-2 text-purple-400"></i>Rendimiento por Estado Mental</h3>
+        <div id="psychDetailContainer" class="space-y-2"></div>
+    </div>
+
+    <!-- Adherencia a reglas -->
+    <div class="glass-effect p-4 mb-4">
+        <h3 class="text-sm font-semibold mb-3"><i class="fas fa-check-double mr-2 text-green-400"></i>Adherencia a Reglas vs Resultado</h3>
+        <div id="rulesAdherenceChart" class="chart-container mb-3"></div>
+        <div id="rulesBreakList" class="space-y-1"></div>
+    </div>
+
+    <!-- Revisión semanal -->
+    <div class="glass-effect p-4 mb-4">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold"><i class="fas fa-clipboard-list mr-2 text-cyan-400"></i>Revisión Semanal</h3>
+            <button id="weekNavPrev" class="btn-secondary text-xs py-1 px-2"><i class="fas fa-chevron-left"></i></button>
+            <span id="weekLabel" class="text-xs text-slate-400">Esta semana</span>
+            <button id="weekNavNext" class="btn-secondary text-xs py-1 px-2"><i class="fas fa-chevron-right"></i></button>
+        </div>
+        <div id="weeklyReviewContent" class="space-y-3"></div>
+    </div>
+
+    <!-- Revisión mensual -->
+    <div class="glass-effect p-4">
+        <h3 class="text-sm font-semibold mb-3"><i class="fas fa-calendar-check mr-2 text-orange-400"></i>Resumen del Mes Actual</h3>
+        <div id="monthlyReviewContent" class="space-y-2"></div>
+    </div>
+</section>
+
+<!-- ===== BOTTOM NAV OVERRIDE ===== -->
+<nav class="bottom-nav">
+    <div class="flex">
+        <button class="nav-item active" data-section="dashboard">
+            <i class="fas fa-tachometer-alt"></i><span>Dashboard</span>
+        </button>
+        <button class="nav-item" data-section="registro">
+            <i class="fas fa-list"></i><span>Registro</span>
+        </button>
+        <button class="nav-item" data-section="analisis">
+            <i class="fas fa-chart-bar"></i><span>Análisis</span>
+        </button>
+        <button class="nav-item" data-section="psicologia">
+            <i class="fas fa-brain"></i><span>Psicología</span>
+        </button>
+        <button class="nav-item" data-section="config">
+            <i class="fas fa-cog"></i><span>Config</span>
+        </button>
+    </div>
+</nav>
+
+<script>
+// =====================================================================
+//   DIARIO DE TRADING PRO — v4.0 FINAL
+//   Todo integrado en una sola clase, sin patches post-instanciación
+// =====================================================================
+
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+function showToast(msg, type='success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.className = `toast ${type}`;
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 3000);
+}
+
+function showSection(name) {
+    document.querySelectorAll('.spa-section').forEach(s=>s.classList.remove('active'));
+    const sec = document.getElementById('section-'+name);
+    if(sec) sec.classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(b=>{
+        b.classList.toggle('active', b.dataset.section===name);
+    });
+    if(name==='dashboard')  journal.renderDashboard();
+    if(name==='analisis')   journal.renderAnalysis();
+    if(name==='config')     { journal.renderConfig(); }
+    if(name==='registro')   journal.renderTrades();
+    if(name==='psicologia') journal.renderPsychology();
+}
+
+const DB = {
+    load(key, def) { try { return JSON.parse(localStorage.getItem(key)) || def; } catch(e){ return def; }},
+    save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+};
+
+class TradingJournal {
+    constructor() {
+        this.trades        = DB.load('tj_trades', []);
+        this.accounts      = DB.load('tj_accounts', []);
+        this.config        = DB.load('tj_config', {
+            pairs:      ['XAUUSD','NAS100','EURUSD','GBPUSD','BTCUSD'],
+            strategies: ['SMC/ICT','Price Action','Tendencia'],
+            setups:     ['BPR','OB+FVG','Breaker+FVG','OB+Fib','IFVG+Fib','EMA Bounce','Soporte/Resistencia']
+        });
+        this.activeAccount  = DB.load('tj_activeAccount', null);
+        this.editTradeId    = null;
+        this.filteredTrades = [...this.trades];
+        this._calDate       = new Date();
+        this._weekOffset    = 0;
+        this.init();
+    }
+
+    // ── INIT ──────────────────────────────────────────────────────────
+    init() {
+        this.setupNav();
+        this.setupAccountForm();
+        this.setupTradeForm();
+        this.setupConfigListeners();
+        this.setupLotCalculator();
+        this.initCalendar();
+        this.populateAccountSelector();
+
+        if(this.accounts.length === 0) {
+            setTimeout(()=>openModal('setupModal'), 400);
+        } else {
+            if(!this.activeAccount || !this.accounts.find(a=>a.id===this.activeAccount)) {
+                this.activeAccount = this.accounts[0].id;
+                DB.save('tj_activeAccount', this.activeAccount);
+            }
+            this.renderDashboard();
+            this.renderTrades();
+        }
+    }
+
+    // ── NAVIGATION ────────────────────────────────────────────────────
+    setupNav() {
+        document.querySelectorAll('.nav-item').forEach(btn=>{
+            btn.addEventListener('click', ()=>showSection(btn.dataset.section));
+        });
+        const sel = document.getElementById('accountSelector');
+        if(sel) sel.addEventListener('change', e=>{
+            this.activeAccount = e.target.value;
+            DB.save('tj_activeAccount', this.activeAccount);
+            this.renderDashboard();
+            this.renderTrades();
+        });
+    }
+
+    // ── ACCOUNTS ──────────────────────────────────────────────────────
+    setupAccountForm() {
+        document.getElementById('setupForm')?.addEventListener('submit', e=>{
+            e.preventDefault();
+            const name = document.getElementById('setupAccountName').value.trim();
+            const cap  = parseFloat(document.getElementById('setupCapital').value)||0;
+            if(!name||cap<=0){ showToast('Completa los campos requeridos','error'); return; }
+            this.createAccount({ name, capital:cap,
+                maxDD:   parseFloat(document.getElementById('setupMaxDD').value)||8,
+                target:  parseFloat(document.getElementById('setupTarget').value)||10,
+                riskPerTrade: parseFloat(document.getElementById('setupRisk').value)||1,
+                color: '#3b82f6' });
+            closeModal('setupModal');
+            showToast('Cuenta creada');
+            this.renderDashboard();
+        });
+
+        document.getElementById('newAccountForm')?.addEventListener('submit', e=>{
+            e.preventDefault();
+            const name = document.getElementById('naName').value.trim();
+            const cap  = parseFloat(document.getElementById('naCapital').value)||0;
+            if(!name||cap<=0){ showToast('Completa los campos requeridos','error'); return; }
+            this.createAccount({ name, capital:cap,
+                maxDD:   parseFloat(document.getElementById('naMaxDD').value)||8,
+                target:  parseFloat(document.getElementById('naTarget').value)||10,
+                riskPerTrade: parseFloat(document.getElementById('naRisk').value)||1,
+                color: document.getElementById('naColor').value||'#3b82f6' });
+            closeModal('newAccountModal');
+            document.getElementById('newAccountForm').reset();
+            showToast('Cuenta creada');
+            this.renderConfig();
+        });
+
+        document.querySelectorAll('.color-opt').forEach(opt=>{
+            opt.addEventListener('click', ()=>{
+                document.querySelectorAll('.color-opt').forEach(o=>o.style.borderColor='transparent');
+                opt.style.borderColor='#fff';
+                const nc = document.getElementById('naColor');
+                if(nc) nc.value=opt.dataset.color;
+            });
+        });
+    }
+
+    createAccount(data) {
+        const acc = { id: Date.now().toString(), name: data.name,
+            initialCapital: data.capital, maxDD: data.maxDD||8,
+            target: data.target||10, riskPerTrade: data.riskPerTrade||1,
+            color: data.color||'#3b82f6', createdAt: new Date().toISOString() };
+        this.accounts.push(acc);
+        DB.save('tj_accounts', this.accounts);
+        if(!this.activeAccount){ this.activeAccount=acc.id; DB.save('tj_activeAccount',acc.id); }
+        this.populateAccountSelector();
+        return acc;
+    }
+
+    getAccountById(id){ return this.accounts.find(a=>a.id===id); }
+
+    getAccountBalance(accountId){
+        const acc=this.getAccountById(accountId); if(!acc) return 0;
+        let bal=acc.initialCapital;
+        this.trades.filter(t=>t.accountId===accountId&&t.result!=='OPEN')
+            .forEach(t=>{ bal+=this.calcPL(t, acc.initialCapital); });
+        return bal;
+    }
+
+    calcPL(trade, initialCapital){
+        if(!trade.riskValue) return 0;
+        const risk = trade.riskType==='percentage'
+            ? (initialCapital * trade.riskValue / 100)
+            : parseFloat(trade.riskValue)||0;
+        if(trade.result==='WIN')  return risk * (parseFloat(trade.rrReal)||parseFloat(trade.rrPlanned)||1);
+        if(trade.result==='LOSS') return -risk;
+        return 0;
+    }
+
+    populateAccountSelector(){
+        const sel  = document.getElementById('accountSelector');
+        const fAcc = document.getElementById('filterAccount');
+        const trAcc= document.getElementById('tradeAccount');
+        const opts = this.accounts.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+        if(sel)  { sel.innerHTML=opts;  if(this.activeAccount) sel.value=this.activeAccount; }
+        if(fAcc) { fAcc.innerHTML='<option value="">Todas</option>'+opts; }
+        if(trAcc){ trAcc.innerHTML=opts; if(this.activeAccount) trAcc.value=this.activeAccount; }
+    }
+
+    // ── TRADE FORM ────────────────────────────────────────────────────
+    setupTradeForm(){
+        document.getElementById('addTradeBtn')?.addEventListener('click', ()=>this.openTradeModal());
+
+        document.getElementById('tradeForm')?.addEventListener('submit', e=>{
+            e.preventDefault();
+            this.saveTradeFromForm();
+        });
+
+        document.getElementById('tradeResult')?.addEventListener('change', e=>{
+            document.getElementById('lossCauseSection')?.classList.toggle('show', e.target.value==='LOSS');
+        });
+
+        document.getElementById('tradeRulesFollowed')?.addEventListener('change', e=>{
+            document.getElementById('rulesBreakSection')?.classList.toggle('show', e.target.value!=='Sí');
+        });
+
+        const calcRisk = ()=>{
+            const acc=this.getAccountById(document.getElementById('tradeAccount')?.value);
+            const val=parseFloat(document.getElementById('riskValue')?.value)||0;
+            const type=document.getElementById('riskType')?.value;
+            const disp=document.getElementById('riskCalcDisplay');
+            const span=document.getElementById('riskInDollars');
+            if(acc&&val>0&&span){
+                const bal=this.getAccountBalance(acc.id);
+                const amt=type==='percentage'?(bal*val/100):val;
+                span.textContent='$'+amt.toFixed(2);
+                disp?.classList.remove('hidden');
+            } else { disp?.classList.add('hidden'); }
+        };
+        document.getElementById('riskValue')?.addEventListener('input', calcRisk);
+        document.getElementById('riskType')?.addEventListener('change', calcRisk);
+        document.getElementById('tradeAccount')?.addEventListener('change', ()=>{
+            calcRisk();
+            const acc=this.getAccountById(document.getElementById('tradeAccount').value);
+            if(acc){ const ci=document.getElementById('calcCapital'); if(ci) ci.value=this.getAccountBalance(acc.id).toFixed(2); }
+        });
+
+        // Toggle filters
+        document.getElementById('toggleFilters')?.addEventListener('click', ()=>{
+            const fp=document.getElementById('filterPanel');
+            const hidden=fp?.classList.toggle('hidden');
+            const btn=document.getElementById('toggleFilters');
+            if(btn) btn.textContent=hidden?'Mostrar':'Ocultar';
+        });
+        document.getElementById('applyFilters')?.addEventListener('click', ()=>this.applyFilters());
+        document.getElementById('clearFilters')?.addEventListener('click', ()=>this.clearFilters());
+    }
+
+    populateTradeSelects(){
+        const poi   = document.getElementById('tradePOI');
+        const strat = document.getElementById('tradeStrategy');
+        const pairs = document.getElementById('pairSuggestions');
+        if(poi)   poi.innerHTML='<option value="">-</option>'+this.config.setups.map(s=>`<option value="${s}">${s}</option>`).join('');
+        if(strat) strat.innerHTML='<option value="">-</option>'+this.config.strategies.map(s=>`<option value="${s}">${s}</option>`).join('');
+        if(pairs) pairs.innerHTML=this.config.pairs.map(p=>`<option value="${p}">`).join('');
+    }
+
+    openTradeModal(tradeId=null){
+        if(!this.accounts.length){ showToast('Crea una cuenta primero','error'); openModal('setupModal'); return; }
+        this.editTradeId=tradeId;
+        this.populateAccountSelector();
+        this.populateTradeSelects();
+        document.getElementById('lossCauseSection')?.classList.remove('show');
+        document.getElementById('rulesBreakSection')?.classList.remove('show');
+        if(tradeId){
+            const t=this.trades.find(x=>x.id===tradeId);
+            if(t) this.fillTradeForm(t);
+            const ti=document.getElementById('modalTradeTitle'); if(ti) ti.textContent='Editar Operación';
+        } else {
+            document.getElementById('tradeForm')?.reset();
+            const now=new Date();
+            const td=document.getElementById('tradeDate'); if(td) td.value=now.toISOString().split('T')[0];
+            const tt=document.getElementById('tradeTime'); if(tt) tt.value=now.toTimeString().slice(0,5);
+            const ta=document.getElementById('tradeAccount'); if(ta&&this.activeAccount) ta.value=this.activeAccount;
+            const rf=document.getElementById('tradeRulesFollowed'); if(rf) rf.value='Sí';
+            const ms=document.getElementById('tradeMentalState'); if(ms) ms.value='Neutro';
+            const ti=document.getElementById('modalTradeTitle'); if(ti) ti.textContent='Nueva Operación';
+        }
+        openModal('addTradeModal');
+    }
+
+    fillTradeForm(t){
+        const f=(id,val)=>{ const el=document.getElementById(id); if(el) el.value=val||''; };
+        f('tradeAccount',t.accountId); f('tradeDate',t.date); f('tradeTime',t.time);
+        f('tradePair',t.pair); f('tradeDirection',t.direction); f('tradeTimeframe',t.timeframe);
+        f('tradeSession',t.session); f('tradeStrategy',t.strategy); f('tradePOI',t.poi);
+        f('tradeFibLevel',t.fibLevel); f('tradeTrendHTF',t.trendHTF); f('tradeAligned',t.aligned);
+        f('confluenceDetails',t.confluenceDetails); f('tradeEntryPrice',t.entryPrice);
+        f('tradeSLPrice',t.slPrice); f('tradeTPPrice',t.tpPrice);
+        f('riskType',t.riskType||'percentage'); f('riskValue',t.riskValue);
+        f('tradeMentalState',t.mentalState||'Neutro'); f('tradeRulesFollowed',t.rulesFollowed||'Sí');
+        f('tradeRulesBreak',t.rulesBreak); f('tradeRRPlanned',t.rrPlanned);
+        f('tradeResult',t.result); f('tradeRRReal',t.rrReal); f('tradeLossCause',t.lossCause);
+        f('tradeCloseDate',t.closeDate); f('tradeCloseTime',t.closeTime); f('tradeNotes',t.notes);
+        const ig=document.getElementById('tradeIgnoredNews'); if(ig) ig.checked=t.ignoredNews||false;
+        if(t.result==='LOSS') document.getElementById('lossCauseSection')?.classList.add('show');
+        if(t.rulesFollowed&&t.rulesFollowed!=='Sí') document.getElementById('rulesBreakSection')?.classList.add('show');
+    }
+
+    closeTradeModal(){ closeModal('addTradeModal'); this.editTradeId=null; }
+
+    saveTradeFromForm(){
+        const g=id=>document.getElementById(id)?.value||'';
+        const accountId=g('tradeAccount');
+        if(!accountId){ showToast('Selecciona una cuenta','error'); return; }
+        const data={
+            accountId, date:g('tradeDate'), time:g('tradeTime'),
+            pair:g('tradePair').toUpperCase(), direction:g('tradeDirection'),
+            timeframe:g('tradeTimeframe'), session:g('tradeSession'),
+            strategy:g('tradeStrategy'), poi:g('tradePOI'), fibLevel:g('tradeFibLevel'),
+            trendHTF:g('tradeTrendHTF'), aligned:g('tradeAligned'),
+            confluenceDetails:g('confluenceDetails'),
+            entryPrice:parseFloat(g('tradeEntryPrice'))||null,
+            slPrice:parseFloat(g('tradeSLPrice'))||null,
+            tpPrice:parseFloat(g('tradeTPPrice'))||null,
+            riskType:g('riskType')||'percentage', riskValue:parseFloat(g('riskValue'))||0,
+            mentalState:g('tradeMentalState')||'Neutro',
+            rulesFollowed:g('tradeRulesFollowed')||'Sí',
+            rulesBreak:g('tradeRulesBreak'),
+            rrPlanned:parseFloat(g('tradeRRPlanned'))||0,
+            result:g('tradeResult'), rrReal:parseFloat(g('tradeRRReal'))||0,
+            lossCause:g('tradeLossCause'),
+            ignoredNews:document.getElementById('tradeIgnoredNews')?.checked||false,
+            closeDate:g('tradeCloseDate'), closeTime:g('tradeCloseTime'), notes:g('tradeNotes'),
+            updatedAt:new Date().toISOString()
+        };
+        if(!data.date){ showToast('La fecha es requerida','error'); return; }
+        if(!data.pair){ showToast('El activo es requerido','error'); return; }
+
+        if(this.editTradeId){
+            const idx=this.trades.findIndex(t=>t.id===this.editTradeId);
+            if(idx!==-1) this.trades[idx]={...this.trades[idx],...data};
+            showToast('Operación actualizada');
+        } else {
+            data.id=Date.now().toString(); data.createdAt=new Date().toISOString();
+            this.trades.unshift(data);
+            showToast('Operación guardada ✓');
+        }
+        DB.save('tj_trades', this.trades);
+        this.filteredTrades=[...this.trades];
+        this.closeTradeModal();
+        this.renderDashboard();
+        this.renderTrades();
+    }
+
+    deleteTrade(id){
+        if(!confirm('¿Eliminar esta operación?')) return;
+        this.trades=this.trades.filter(t=>t.id!==id);
+        this.filteredTrades=this.filteredTrades.filter(t=>t.id!==id);
+        DB.save('tj_trades',this.trades);
+        this.renderTrades(); this.renderDashboard();
+        showToast('Eliminada','info');
+    }
+
+    // ── LOT CALCULATOR ────────────────────────────────────────────────
+    setupLotCalculator(){
+        document.getElementById('calcLotBtn')?.addEventListener('click',()=>{
+            const entry=parseFloat(document.getElementById('calcEntry')?.value)||0;
+            const sl   =parseFloat(document.getElementById('calcSL')?.value)||0;
+            const pipV =parseFloat(document.getElementById('calcPipVal')?.value)||1;
+            const accId=document.getElementById('tradeAccount')?.value;
+            const acc  =this.getAccountById(accId);
+            const capital=parseFloat(document.getElementById('calcCapital')?.value)||(acc?this.getAccountBalance(acc.id):10000);
+            const riskPct=parseFloat(document.getElementById('riskValue')?.value)||1;
+            const riskType=document.getElementById('riskType')?.value||'percentage';
+            if(!entry||!sl){ showToast('Ingresa precio entrada y SL','error'); return; }
+            const dist=Math.abs(entry-sl);
+            if(dist===0){ showToast('Entrada y SL no pueden ser iguales','error'); return; }
+            const riskAmt=riskType==='percentage'?(capital*riskPct/100):riskPct;
+            const lotSize=(riskAmt/(dist*pipV)).toFixed(2);
+            const rrP=parseFloat(document.getElementById('tradeRRPlanned')?.value)||2;
+            const dir=document.getElementById('tradeDirection')?.value;
+            const tpPrice=dir==='SHORT'?(entry-dist*rrP):(entry+dist*rrP);
+            const res=document.getElementById('lotCalcResult'); res?.classList.remove('hidden');
+            const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+            set('lotResultValue', lotSize+' lotes');
+            set('lotResultDetail', `Dist SL: ${dist.toFixed(2)} pts · PipVal: $${pipV}`);
+            set('lotRiskDollar', '$'+riskAmt.toFixed(2));
+            set('lotDistSL', dist.toFixed(2)+' pts');
+            set('lotTPEst', tpPrice.toFixed(2));
+            const ep=document.getElementById('tradeEntryPrice'); if(ep&&!ep.value) ep.value=entry;
+            const sp=document.getElementById('tradeSLPrice');    if(sp&&!sp.value) sp.value=sl;
+            const tp=document.getElementById('tradeTPPrice');    if(tp&&!tp.value) tp.value=tpPrice.toFixed(2);
+        });
+    }
+
+    // ── DASHBOARD ─────────────────────────────────────────────────────
+    renderDashboard(){
+        const acc=this.getAccountById(this.activeAccount); if(!acc) return;
+        const trades=this.trades.filter(t=>t.accountId===this.activeAccount&&t.result!=='OPEN');
+        const bal=this.getAccountBalance(this.activeAccount);
+        const pnl=bal-acc.initialCapital; const pct=pnl/acc.initialCapital*100;
+
+        const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+        set('dashAccountName', acc.name);
+        set('dashAccountType', `Capital inicial: $${acc.initialCapital.toLocaleString('en')}`);
+        set('dashCurrentBalance', '$'+bal.toFixed(2));
+        const pnlEl=document.getElementById('dashPnl');
+        if(pnlEl){ pnlEl.textContent=`${pnl>=0?'+':''}$${pnl.toFixed(2)} (${pct>=0?'+':''}${pct.toFixed(2)}%)`; pnlEl.style.color=pnl>=0?'#22c55e':'#ef4444'; }
+
+        if(acc.maxDD||acc.target){
+            document.getElementById('ddSection')?.classList.remove('hidden');
+            const ddP=Math.max(0,-pct); const ddW=Math.min(100,(ddP/(acc.maxDD||8))*100);
+            const ddC=ddP<(acc.maxDD||8)*0.5?'#22c55e':ddP<(acc.maxDD||8)*0.8?'#f59e0b':'#ef4444';
+            const ddL=document.getElementById('ddLabel'); if(ddL){ ddL.textContent=ddP.toFixed(2)+'%'; ddL.style.color=ddC; }
+            const ddF=document.getElementById('ddFill'); if(ddF){ ddF.style.width=ddW+'%'; ddF.style.background=ddC; }
+            const tP=Math.max(0,pct); const tW=Math.min(100,(tP/(acc.target||10))*100);
+            set('targetLabel', tP.toFixed(2)+'% / '+(acc.target||10)+'%');
+            const tF=document.getElementById('targetFill'); if(tF) tF.style.width=tW+'%';
+        }
+
+        const wins=trades.filter(t=>t.result==='WIN');
+        const losses=trades.filter(t=>t.result==='LOSS');
+        const wr=(wins.length+losses.length)>0?(wins.length/(wins.length+losses.length)*100):0;
+        const gW=wins.reduce((s,t)=>s+this.calcPL(t,acc.initialCapital),0);
+        const gL=Math.abs(losses.reduce((s,t)=>s+this.calcPL(t,acc.initialCapital),0));
+        const pf=gL>0?gW/gL:(wins.length>0?999:0);
+        const rrV=trades.filter(t=>parseFloat(t.rrReal)>0).map(t=>parseFloat(t.rrReal));
+        const avgRR=rrV.length?(rrV.reduce((a,b)=>a+b,0)/rrV.length):0;
+        const planRR=trades.length?(trades.reduce((s,t)=>s+(parseFloat(t.rrPlanned)||0),0)/trades.length):0;
+        let cap2=acc.initialCapital,peak2=acc.initialCapital,mdd=0,streak=0,cur=0;
+        [...trades].reverse().forEach(t=>{ cap2+=this.calcPL(t,acc.initialCapital); if(cap2>peak2) peak2=cap2; const dd=(peak2-cap2)/peak2*100; if(dd>mdd) mdd=dd; });
+        trades.forEach(t=>{ cur=t.result==='LOSS'?cur+1:0; if(cur>streak) streak=cur; });
+        set('dashWinRate', wr.toFixed(1)+'%'); set('dashTotalTrades', trades.length);
+        set('dashPF', pf===999?'∞':pf.toFixed(2)); set('dashAvgRR', avgRR.toFixed(2));
+        set('dashPlannedRR', planRR.toFixed(2)); set('dashMaxDD', mdd.toFixed(1)+'%'); set('dashStreak', streak);
+
+        const noData=['resultsChart','capitalChart','setupChart','pairChart','ddHistChart','pnlDayChart'];
+        if(!trades.length){ noData.forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML='<p class="text-slate-500 text-xs text-center py-8">Sin datos</p>'; });
+            this.renderAdvancedMetrics([], acc); this.renderCalendar(); return; }
+
+        this.chartResults(trades); this.chartCapital(trades,acc);
+        this.chartSetups(trades); this.chartPairs(trades,acc);
+        this.chartDDHistory(trades,acc); this.chartPnLByDay(trades,acc);
+        this.renderAdvancedMetrics(trades,acc); this.renderCalendar();
+        this.renderMultiAccountTabs();
+    }
+
+    chartResults(trades){
+        const w=trades.filter(t=>t.result==='WIN').length, l=trades.filter(t=>t.result==='LOSS').length, b=trades.filter(t=>t.result==='BE').length;
+        if(!(w+l+b)) return;
+        Plotly.newPlot('resultsChart',[{values:[w,l,b],labels:['WIN','LOSS','BE'],type:'pie',marker:{colors:['#22c55e','#ef4444','#fb923c']},textinfo:'label+percent',textposition:'outside'}],
+            {showlegend:false,margin:{t:10,b:10,l:10,r:10},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:'#94a3b8'}},{displayModeBar:false,responsive:true});
+    }
+    chartCapital(trades,acc){
+        const sorted=[...trades].reverse(); const caps=[acc.initialCapital]; let c=acc.initialCapital; const labels=['Inicio'];
+        sorted.forEach(t=>{ c+=this.calcPL(t,acc.initialCapital); caps.push(c); labels.push(t.date||''); });
+        Plotly.newPlot('capitalChart',[{x:labels,y:caps,type:'scatter',mode:'lines',line:{color:'#3b82f6',width:2},fill:'tozeroy',fillcolor:'rgba(59,130,246,0.1)'}],
+            {xaxis:{showticklabels:false,color:'#94a3b8'},yaxis:{color:'#94a3b8'},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:'#94a3b8'},margin:{t:10,b:20,l:55,r:10}},{displayModeBar:false,responsive:true});
+    }
+    chartSetups(trades){
+        const stats={}; trades.forEach(t=>{ const k=t.poi||'Sin setup'; if(!stats[k]) stats[k]={w:0,tot:0}; stats[k].tot++; if(t.result==='WIN') stats[k].w++; });
+        const keys=Object.keys(stats).sort((a,b)=>stats[b].tot-stats[a].tot).slice(0,8);
+        if(!keys.length) return;
+        Plotly.newPlot('setupChart',[{x:keys,y:keys.map(k=>(stats[k].w/stats[k].tot*100).toFixed(1)),type:'bar',marker:{color:keys.map(k=>stats[k].w/stats[k].tot>=0.5?'#22c55e':'#ef4444')},text:keys.map(k=>`${stats[k].tot}t`),textposition:'outside'}],
+            {xaxis:{color:'#94a3b8',tickangle:-30},yaxis:{title:'WR%',color:'#94a3b8'},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:'#94a3b8'},margin:{t:20,b:70,l:45,r:10}},{displayModeBar:false,responsive:true});
+    }
+    chartPairs(trades,acc){
+        const stats={}; trades.forEach(t=>{ const k=t.pair||'?'; if(!stats[k]) stats[k]={w:0,tot:0,pl:0}; stats[k].tot++; if(t.result==='WIN') stats[k].w++; stats[k].pl+=this.calcPL(t,acc.initialCapital); });
+        const keys=Object.keys(stats); if(!keys.length) return;
+        Plotly.newPlot('pairChart',[{x:keys,y:keys.map(k=>stats[k].pl.toFixed(2)),type:'bar',marker:{color:keys.map(k=>stats[k].pl>=0?'#22c55e':'#ef4444')},text:keys.map(k=>`WR ${(stats[k].w/stats[k].tot*100).toFixed(0)}%`),textposition:'outside'}],
+            {xaxis:{color:'#94a3b8'},yaxis:{title:'P&L $',color:'#94a3b8'},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:'#94a3b8'},margin:{t:20,b:40,l:55,r:10}},{displayModeBar:false,responsive:true});
+    }
+    chartDDHistory(trades,acc){
+        if(!trades.length) return;
+        const sorted=[...trades].reverse(); let cap=acc.initialCapital,peak=acc.initialCapital; const dds=[],labels=[];
+        sorted.forEach(t=>{ cap+=this.calcPL(t,acc.initialCapital); if(cap>peak) peak=cap; dds.push(((peak-cap)/peak*100).toFixed(2)); labels.push(t.date||''); });
+        Plotly.newPlot('ddHistChart',[{x:labels,y:dds,type:'scatter',mode:'lines',fill:'tozeroy',line:{color:'#ef4444',width:1.5},fillcolor:'rgba(239,68,68,0.1)'}],
+            {xaxis:{showticklabels:false,color:'#94a3b8'},yaxis:{title:'DD%',color:'#94a3b8',autorange:'reversed'},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:'#94a3b8'},margin:{t:10,b:20,l:45,r:10}},{displayModeBar:false,responsive:true});
+    }
+    chartPnLByDay(trades,acc){
+        const days=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']; const dayPL={}; days.forEach(d=>dayPL[d]=0);
+        trades.forEach(t=>{ const dn=new Date(t.date+'T12:00:00').getDay(); if(!isNaN(dn)) dayPL[days[dn]]+=this.calcPL(t,acc.initialCapital); });
+        const k=days.filter(d=>dayPL[d]!==0); if(!k.length) return;
+        Plotly.newPlot('pnlDayChart',[{x:k,y:k.map(d=>dayPL[d].toFixed(2)),type:'bar',marker:{color:k.map(d=>dayPL[d]>=0?'#22c55e':'#ef4444')}}],
+            {xaxis:{color:'#94a3b8'},yaxis:{title:'P&L $',color:'#94a3b8'},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:'#94a3b8'},margin:{t:10,b:40,l:55,r:10}},{displayModeBar:false,responsive:true});
+    }
+
+    // ── FASE 2: Advanced Metrics ───────────────────────────────────────
+    renderAdvancedMetrics(trades, acc){
+        // Racha actual
+        let curStreak=0,curType='none';
+        for(let i=0;i<trades.length;i++){
+            const r=trades[i].result;
+            if(i===0){ curType=r==='WIN'?'win':r==='LOSS'?'loss':'none'; curStreak=1; }
+            else if((r==='WIN'&&curType==='win')||(r==='LOSS'&&curType==='loss')) curStreak++;
+            else break;
+        }
+        const pill=document.getElementById('currentStreakPill');
+        if(pill){
+            if(curType==='win')  { pill.className='streak-pill streak-win';  pill.innerHTML=`<i class="fas fa-fire"></i> ${curStreak} WIN seguidos`; }
+            else if(curType==='loss'){ pill.className='streak-pill streak-loss'; pill.innerHTML=`<i class="fas fa-times-circle"></i> ${curStreak} LOSS seguidos`; }
+            else { pill.className='streak-pill streak-none'; pill.innerHTML=`<i class="fas fa-minus"></i> Sin operaciones`; }
+        }
+        // Best/worst streak
+        let bst=0,wst=0,wc=0,lc=0;
+        [...trades].reverse().forEach(t=>{ if(t.result==='WIN'){wc++;lc=0;if(wc>bst)bst=wc;} else if(t.result==='LOSS'){lc++;wc=0;if(lc>wst)wst=lc;} else{wc=0;lc=0;} });
+        const bsEl=document.getElementById('dashBestStreak');   if(bsEl) bsEl.textContent=bst;
+        const wsEl=document.getElementById('dashWorstStreak');  if(wsEl) wsEl.textContent=wst;
+        // Expectativa
+        const totalPL=trades.reduce((s,t)=>s+this.calcPL(t,acc.initialCapital),0);
+        const exp=trades.length?totalPL/trades.length:0;
+        const expEl=document.getElementById('dashExpectancy');
+        if(expEl){ expEl.textContent=(exp>=0?'+':'')+'$'+exp.toFixed(2); expEl.style.color=exp>=0?'#4ade80':'#f87171'; }
+        // Sharpe mensual
+        const mMap={}; trades.forEach(t=>{ const k=(t.date||'').slice(0,7); if(!mMap[k]) mMap[k]=0; mMap[k]+=this.calcPL(t,acc.initialCapital); });
+        const mVals=Object.values(mMap); let sharpe=0;
+        if(mVals.length>1){ const mean=mVals.reduce((a,b)=>a+b,0)/mVals.length; const std=Math.sqrt(mVals.reduce((s,v)=>s+(v-mean)**2,0)/mVals.length); sharpe=std>0?(mean/std*Math.sqrt(12)):0; }
+        const shEl=document.getElementById('dashSharpe');
+        if(shEl){ shEl.textContent=sharpe.toFixed(2); shEl.style.color=sharpe>=1?'#4ade80':sharpe>=0.5?'#fb923c':'#f87171'; }
+    }
+
+    renderMultiAccountTabs(){
+        const stats=document.getElementById('multiAccStats'); if(!stats) return;
+        stats.innerHTML=this.accounts.map(a=>{
+            const bal=this.getAccountBalance(a.id); const pnl=bal-a.initialCapital; const pct=pnl/a.initialCapital*100;
+            const ddP=pct<0?Math.abs(pct):0; const ddW=a.maxDD?Math.min(100,ddP/a.maxDD*100):0;
+            const t=this.trades.filter(x=>x.accountId===a.id&&x.result!=='OPEN');
+            const w=t.filter(x=>x.result==='WIN').length; const l=t.filter(x=>x.result==='LOSS').length;
+            const wr=(w+l)>0?(w/(w+l)*100):0;
+            return `<div class="risk-manager mb-2">
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-2 h-2 rounded-full flex-shrink-0" style="background:${a.color}"></div>
+                    <span class="font-semibold text-sm text-white flex-1">${a.name}</span>
+                    <span class="font-bold text-sm" style="color:${pnl>=0?'#4ade80':'#f87171'}">${pct>=0?'+':''}${pct.toFixed(2)}%</span>
+                </div>
+                <div class="risk-row"><span class="risk-k">Balance</span><span class="text-white font-semibold">$${bal.toFixed(2)}</span></div>
+                <div class="risk-row"><span class="risk-k">P&L</span><span style="color:${pnl>=0?'#4ade80':'#f87171'}">${pnl>=0?'+':''}$${pnl.toFixed(2)}</span></div>
+                <div class="risk-row"><span class="risk-k">Win Rate</span><span class="text-white">${wr.toFixed(1)}%  (${t.length} ops)</span></div>
+                ${a.maxDD?`<div class="risk-row"><span class="risk-k">DD ${ddP.toFixed(2)}% / ${a.maxDD}% máx</span><span style="color:${ddP<a.maxDD*0.5?'#4ade80':ddP<a.maxDD*0.8?'#fb923c':'#f87171'}">${ddP<a.maxDD*0.5?'OK':ddP<a.maxDD*0.8?'⚠ Atención':'🔴 Peligro'}</span></div>
+                <div class="progress-bar mt-1 mb-1"><div class="progress-fill" style="width:${ddW}%;background:${ddP<a.maxDD*0.5?'#22c55e':ddP<a.maxDD*0.8?'#f59e0b':'#ef4444'}"></div></div>`:''}
+            </div>`;
+        }).join('')||'<p class="text-xs text-slate-500">Sin cuentas</p>';
+    }
+
+    // ── CALENDARIO ────────────────────────────────────────────────────
+    initCalendar(){
+        document.getElementById('calPrev')?.addEventListener('click',()=>{ this._calDate.setMonth(this._calDate.getMonth()-1); this.renderCalendar(); });
+        document.getElementById('calNext')?.addEventListener('click',()=>{ this._calDate.setMonth(this._calDate.getMonth()+1); this.renderCalendar(); });
+        this.renderCalendar();
+    }
+
+    renderCalendar(){
+        const d=this._calDate, y=d.getFullYear(), m=d.getMonth();
+        const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+        const tEl=document.getElementById('calTitle'); if(tEl) tEl.textContent=`${months[m]} ${y}`;
+        const grid=document.getElementById('calGrid'); if(!grid) return;
+        const acc=this.getAccountById(this.activeAccount);
+        const prefix=`${y}-${String(m+1).padStart(2,'0')}`;
+        const trades=this.trades.filter(t=>t.accountId===this.activeAccount&&t.date?.startsWith(prefix)&&t.result!=='OPEN');
+        const byDay={};
+        trades.forEach(t=>{ const day=parseInt(t.date?.slice(8,10)||0); if(!byDay[day]) byDay[day]={pl:0,w:0,l:0,b:0}; byDay[day].pl+=acc?this.calcPL(t,acc.initialCapital):0; if(t.result==='WIN') byDay[day].w++; else if(t.result==='LOSS') byDay[day].l++; else byDay[day].b++; });
+        const firstDay=new Date(y,m,1).getDay(); const daysInMonth=new Date(y,m+1,0).getDate();
+        const today=new Date(); let html='';
+        for(let i=0;i<firstDay;i++) html+=`<div class="cal-day empty"></div>`;
+        for(let day=1;day<=daysInMonth;day++){
+            const data=byDay[day]; const isToday=today.getFullYear()===y&&today.getMonth()===m&&today.getDate()===day;
+            let cls='cal-day'; let val='';
+            if(data){ cls+=data.pl>0?' win':data.pl<0?' loss':' be'; val=`<div class="cal-val">${data.pl>=0?'+':''}${data.pl.toFixed(0)}</div>`; }
+            if(isToday) cls+=' today';
+            html+=`<div class="${cls}"><div class="cal-num">${day}</div>${val}</div>`;
+        }
+        grid.innerHTML=html;
+        const totalPL=Object.values(byDay).reduce((s,d)=>s+d.pl,0);
+        const totalW=Object.values(byDay).reduce((s,d)=>s+d.w,0);
+        const totalL=Object.values(byDay).reduce((s,d)=>s+d.l,0);
+        const smry=document.getElementById('calMonthSummary');
+        if(smry) smry.innerHTML=`
+            <div class="bg-green-500/10 rounded p-2"><div class="text-green-400 font-bold">${totalW}</div><div class="text-slate-500 text-xs">Wins</div></div>
+            <div class="bg-red-500/10 rounded p-2"><div class="text-red-400 font-bold">${totalL}</div><div class="text-slate-500 text-xs">Losses</div></div>
+            <div class="rounded p-2" style="background:${totalPL>=0?'rgba(34,197,94,0.1)':'rgba(239,68,68,0.1)'}"><div class="font-bold" style="color:${totalPL>=0?'#4ade80':'#f87171'}">${totalPL>=0?'+':''}$${totalPL.toFixed(0)}</div><div class="text-slate-500 text-xs">P&L Mes</div></div>`;
+    }
+
+    // ── REGISTRO ──────────────────────────────────────────────────────
+    renderTrades(){
+        this.populateAccountSelector();
+        this.populatePairFilter();
+        const list=document.getElementById('tradesList'); if(!list) return;
+        if(!this.filteredTrades.length){
+            list.innerHTML=`<div class="text-center py-12 text-slate-500"><i class="fas fa-inbox text-4xl mb-3 block"></i><p>Sin operaciones. ¡Registra la primera!</p></div>`; return;
+        }
+        list.innerHTML=this.filteredTrades.map(t=>{
+            const acc=this.getAccountById(t.accountId);
+            const pl=acc?this.calcPL(t,acc.initialCapital):0;
+            const rMap={WIN:'result-win',LOSS:'result-loss',BE:'result-be',OPEN:'result-open'};
+            const rc=rMap[t.result]||'result-be'; const ac=acc?.color||'#3b82f6';
+            return `<div class="glass-effect rounded-xl p-4 mb-3">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <div class="font-bold text-white">${t.pair||'-'} <span class="text-xs text-slate-400">${t.direction||''}</span></div>
+                        <div class="text-xs text-slate-400">${t.date||''} ${t.time||''}</div>
+                        <span class="account-badge text-xs mt-1 inline-block" style="background:${ac}22;color:${ac};border:1px solid ${ac}44">${acc?.name||'?'}</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="${rc} text-xs font-semibold">${t.result||'-'}</span>
+                        ${t.result!=='OPEN'?`<div class="text-xs mt-1 font-semibold ${pl>=0?'text-green-400':'text-red-400'}">${pl>=0?'+':''}$${pl.toFixed(2)}</div>`:''}
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-xs mb-2">
+                    <div><span class="text-slate-500">Setup:</span><div>${t.poi||'-'}</div></div>
+                    <div><span class="text-slate-500">Fib:</span><div>${t.fibLevel?t.fibLevel+'%':'-'}</div></div>
+                    <div><span class="text-slate-500">R:R:</span><div>1:${t.rrPlanned||'-'}→${t.rrReal||'-'}</div></div>
+                    <div><span class="text-slate-500">Riesgo:</span><div>${t.riskValue||'-'}${t.riskType==='percentage'?'%':'$'}</div></div>
+                    <div><span class="text-slate-500">Mental:</span><div>${t.mentalState||'-'}</div></div>
+                    <div><span class="text-slate-500">Reglas:</span><div class="${t.rulesFollowed==='No'?'text-red-400':t.rulesFollowed==='Parcial'?'text-yellow-400':''}">${t.rulesFollowed||'Sí'}</div></div>
+                </div>
+                ${t.lossCause?`<div class="text-xs text-red-400 mb-2"><i class="fas fa-exclamation-circle mr-1"></i>${t.lossCause}</div>`:''}
+                ${t.notes?`<div class="text-xs text-slate-400 mb-2 italic">"${t.notes.substring(0,80)}${t.notes.length>80?'...':''}"</div>`:''}
+                <div class="flex gap-2">
+                    <button onclick="journal.openTradeModal('${t.id}')" class="btn-primary flex-1 text-xs py-2"><i class="fas fa-edit mr-1"></i>Editar</button>
+                    <button onclick="journal.deleteTrade('${t.id}')" class="btn-danger flex-1 text-xs py-2"><i class="fas fa-trash mr-1"></i>Eliminar</button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    populatePairFilter(){
+        const fp=document.getElementById('filterPair'); if(!fp) return;
+        const pairs=[...new Set(this.trades.map(t=>t.pair))].filter(Boolean).sort();
+        const cur=fp.value; fp.innerHTML='<option value="">Todos</option>'+pairs.map(p=>`<option value="${p}">${p}</option>`).join(''); fp.value=cur;
+    }
+
+    applyFilters(){
+        const g=id=>document.getElementById(id)?.value||'';
+        const aF=g('filterAccount'),pF=g('filterPair'),rF=g('filterResult'),mF=g('filterMentalState'),frF=g('filterFromDate'),toF=g('filterToDate');
+        this.filteredTrades=this.trades.filter(t=>{
+            if(aF&&t.accountId!==aF) return false;
+            if(pF&&t.pair!==pF) return false;
+            if(rF&&t.result!==rF) return false;
+            if(mF&&t.mentalState!==mF) return false;
+            if(frF&&t.date<frF) return false;
+            if(toF&&t.date>toF) return false;
+            return true;
+        });
+        this.renderTrades();
+        showToast(`${this.filteredTrades.length} operaciones`,'info');
+    }
+
+    clearFilters(){
+        ['filterAccount','filterPair','filterResult','filterMentalState','filterFromDate','filterToDate'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+        this.filteredTrades=[...this.trades]; this.renderTrades();
+    }
+
+    // ── ANÁLISIS ──────────────────────────────────────────────────────
+    renderAnalysis(){
+        const acc=this.getAccountById(this.activeAccount);
+        const trades=this.trades.filter(t=>t.accountId===this.activeAccount&&t.result!=='OPEN');
+        if(!trades.length) return;
+
+        // Hora
+        const hS={}; for(let i=0;i<24;i++) hS[i]={w:0,t:0};
+        trades.forEach(t=>{ const h=parseInt((t.time||'00:00').split(':')[0]); if(!isNaN(h)){ hS[h].t++; if(t.result==='WIN') hS[h].w++; } });
+        const hrs=Object.keys(hS).filter(h=>hS[h].t>0);
+        Plotly.newPlot('hourChart',[{x:hrs.map(h=>h+':00'),y:hrs.map(h=>(hS[h].w/hS[h].t*100).toFixed(1)),type:'bar',marker:{color:'#8b5cf6'},text:hrs.map(h=>hS[h].t+'t'),textposition:'outside'}],
+            {xaxis:{color:'#94a3b8'},yaxis:{title:'WR%',color:'#94a3b8'},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:'#94a3b8'},margin:{t:20,b:40,l:45,r:10}},{displayModeBar:false,responsive:true});
+
+        // Día
+        const days=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']; const dS={}; days.forEach(d=>dS[d]={w:0,t:0});
+        trades.forEach(t=>{ const dn=new Date(t.date+'T12:00:00').getDay(); if(!isNaN(dn)){ const d=days[dn]; dS[d].t++; if(t.result==='WIN') dS[d].w++; } });
+        const dK=days.filter(d=>dS[d].t>0);
+        Plotly.newPlot('dayChart',[{x:dK,y:dK.map(d=>(dS[d].w/dS[d].t*100).toFixed(1)),type:'bar',marker:{color:'#f59e0b'},text:dK.map(d=>dS[d].t+'t'),textposition:'outside'}],
+            {xaxis:{color:'#94a3b8'},yaxis:{title:'WR%',color:'#94a3b8'},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:'#94a3b8'},margin:{t:20,b:40,l:45,r:10}},{displayModeBar:false,responsive:true});
+
+        // Sesión
+        const sS={}; trades.forEach(t=>{ const s=t.session||'Otra'; if(!sS[s]) sS[s]={w:0,t:0}; sS[s].t++; if(t.result==='WIN') sS[s].w++; });
+        const sK=Object.keys(sS);
+        Plotly.newPlot('sessionChart',[{x:sK,y:sK.map(s=>(sS[s].w/sS[s].t*100).toFixed(1)),type:'bar',marker:{color:'#14b8a6'},text:sK.map(s=>sS[s].t+'t'),textposition:'outside'}],
+            {xaxis:{color:'#94a3b8'},yaxis:{title:'WR%',color:'#94a3b8'},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:'#94a3b8'},margin:{t:20,b:40,l:45,r:10}},{displayModeBar:false,responsive:true});
+
+        this.renderStatBlock('mentalStats', trades, t=>t.mentalState||'Neutro');
+        this.renderStatBlock('rulesStats',  trades, t=>t.rulesFollowed||'Sí');
+        this.renderStatBlock('lossStats',   trades.filter(t=>t.result==='LOSS'), t=>t.lossCause||'No especificada');
+        this.renderStatBlock('fibStats',    trades.filter(t=>t.fibLevel), t=>t.fibLevel+'%');
+    }
+
+    renderStatBlock(id, trades, keyFn){
+        const el=document.getElementById(id); if(!el) return;
+        const stats={};
+        trades.forEach(t=>{ const k=keyFn(t); if(!stats[k]) stats[k]={w:0,t:0}; stats[k].t++; if(t.result==='WIN') stats[k].w++; });
+        if(!Object.keys(stats).length){ el.innerHTML='<p class="text-slate-500 text-xs">Sin datos</p>'; return; }
+        el.innerHTML=Object.entries(stats).sort((a,b)=>b[1].t-a[1].t).map(([k,s])=>{
+            const wr=(s.w/s.t*100).toFixed(1); const color=s.w/s.t>=0.5?'text-green-400':'text-red-400';
+            return `<div class="flex justify-between items-center py-1 border-b border-slate-700/40"><span class="text-slate-300 text-xs">${k}</span><span class="${color} font-medium text-xs">${wr}% (${s.t}t)</span></div>`;
+        }).join('');
+    }
+
+    // ── PSICOLOGÍA (FASE 3) ───────────────────────────────────────────
+    renderPsychology(){
+        const acc=this.getAccountById(this.activeAccount); if(!acc) return;
+        const trades=this.trades.filter(t=>t.accountId===this.activeAccount&&t.result!=='OPEN');
+        this.renderRiskManager(acc,trades);
+        this.renderInsights(trades,acc);
+        this.renderPsychDetail(trades,acc);
+        this.renderRulesChart(trades,acc);
+        this.initWeekNav();
+        this.renderWeeklyReview(trades,acc);
+        this.renderMonthlyReview(trades,acc);
+    }
+
+    renderRiskManager(acc,trades){
+        const el=document.getElementById('riskManagerContent'); if(!el) return;
+        const bal=this.getAccountBalance(acc.id); const pnl=bal-acc.initialCapital; const pct=pnl/acc.initialCapital*100;
+        const ddP=pct<0?Math.abs(pct):0; const riskAmt=bal*(acc.riskPerTrade||1)/100;
+        const today=new Date().toISOString().split('T')[0];
+        const todayPL=trades.filter(t=>t.date===today).reduce((s,t)=>s+this.calcPL(t,acc.initialCapital),0);
+        const ddLimit=acc.maxDD||8;
+        const tradesLeft=Math.floor((bal*(ddLimit/100)-Math.max(0,Math.abs(Math.min(0,pnl))))/Math.max(0.01,riskAmt));
+        const ddC=ddP<ddLimit*0.5?'#4ade80':ddP<ddLimit*0.8?'#fb923c':'#f87171';
+        el.innerHTML=`<div class="risk-manager">
+            <div class="risk-row"><span class="risk-k">Capital actual</span><span class="text-white font-bold">$${bal.toFixed(2)}</span></div>
+            <div class="risk-row"><span class="risk-k">P&L total</span><span style="color:${pnl>=0?'#4ade80':'#f87171'}" class="font-bold">${pnl>=0?'+':''}$${pnl.toFixed(2)} (${pct.toFixed(2)}%)</span></div>
+            <div class="risk-row"><span class="risk-k">DD actual / máx</span><span style="color:${ddC}" class="font-bold">${ddP.toFixed(2)}% / ${ddLimit}%</span></div>
+            <div class="risk-row"><span class="risk-k">P&L hoy</span><span style="color:${todayPL>=0?'#4ade80':'#f87171'}">${todayPL>=0?'+':''}$${todayPL.toFixed(2)}</span></div>
+            <div class="risk-row"><span class="risk-k">Riesgo próximo trade (${acc.riskPerTrade||1}%)</span><span class="text-yellow-400 font-bold">$${riskAmt.toFixed(2)}</span></div>
+            <div class="risk-row"><span class="risk-k">Trades posibles hasta límite</span><span class="text-white font-bold">${Math.max(0,tradesLeft)}</span></div>
+        </div>
+        ${ddP>=ddLimit?`<div class="insight-pill insight-negative w-full justify-center mt-2"><i class="fas fa-stop-circle"></i> ¡LÍMITE DD ALCANZADO! Para de operar.</div>`:ddP>ddLimit*0.7?`<div class="insight-pill insight-neutral w-full justify-center mt-2"><i class="fas fa-exclamation-triangle"></i> DD al ${ddP.toFixed(1)}% — Considera reducir el riesgo</div>`:''}`;
+    }
+
+    renderInsights(trades,acc){
+        const el=document.getElementById('insightsContainer'); if(!el) return;
+        if(trades.length<10){ el.innerHTML='<p class="text-xs text-slate-500">Registra al menos 10 operaciones para ver insights.</p>'; return; }
+        const insights=[];
+        // Estado mental
+        const mWR={}; trades.forEach(t=>{ const m=t.mentalState||'Neutro'; if(!mWR[m]) mWR[m]={w:0,t:0}; mWR[m].t++; if(t.result==='WIN') mWR[m].w++; });
+        const mE=Object.entries(mWR).filter(([,v])=>v.t>=3);
+        const bestM=mE.sort((a,b)=>(b[1].w/b[1].t)-(a[1].w/a[1].t))[0];
+        const worstM=mE.sort((a,b)=>(a[1].w/a[1].t)-(b[1].w/b[1].t))[0];
+        if(bestM) insights.push({t:'positive',tx:`<b>${bestM[0]}</b>: tu mejor estado mental — WR ${(bestM[1].w/bestM[1].t*100).toFixed(0)}% (${bestM[1].t} ops)`});
+        if(worstM&&bestM&&worstM[0]!==bestM[0]) insights.push({t:'negative',tx:`Evita operar en estado <b>${worstM[0]}</b> — WR ${(worstM[1].w/worstM[1].t*100).toFixed(0)}%`});
+        // Reglas
+        const rY=trades.filter(t=>t.rulesFollowed==='Sí'), rN=trades.filter(t=>t.rulesFollowed==='No');
+        if(rY.length>3&&rN.length>3){
+            const wrY=rY.filter(t=>t.result==='WIN').length/Math.max(1,rY.filter(t=>t.result!=='BE').length)*100;
+            const wrN=rN.filter(t=>t.result==='WIN').length/Math.max(1,rN.filter(t=>t.result!=='BE').length)*100;
+            if(wrY>wrN) insights.push({t:'positive',tx:`Siguiendo reglas WR <b>${wrY.toFixed(0)}%</b> vs <b>${wrN.toFixed(0)}%</b> sin seguirlas. El sistema funciona.`});
+        }
+        // Sesión
+        const sWR={}; trades.forEach(t=>{ const s=t.session||'Otra'; if(!sWR[s]) sWR[s]={w:0,t:0}; sWR[s].t++; if(t.result==='WIN') sWR[s].w++; });
+        const bestS=Object.entries(sWR).filter(([,v])=>v.t>=3).sort((a,b)=>(b[1].w/b[1].t)-(a[1].w/a[1].t))[0];
+        if(bestS) insights.push({t:'positive',tx:`Mejor sesión: <b>${bestS[0]}</b> — WR ${(bestS[1].w/bestS[1].t*100).toFixed(0)}%`});
+        // Setup
+        const setWR={}; trades.filter(t=>t.poi).forEach(t=>{ if(!setWR[t.poi]) setWR[t.poi]={w:0,t:0}; setWR[t.poi].t++; if(t.result==='WIN') setWR[t.poi].w++; });
+        const bestSet=Object.entries(setWR).filter(([,v])=>v.t>=3).sort((a,b)=>(b[1].w/b[1].t)-(a[1].w/a[1].t))[0];
+        if(bestSet) insights.push({t:'positive',tx:`Setup más efectivo: <b>${bestSet[0]}</b> — WR ${(bestSet[1].w/bestSet[1].t*100).toFixed(0)}% (${bestSet[1].t} ops)`});
+        const cMap={positive:'insight-positive',negative:'insight-negative',neutral:'insight-neutral'};
+        el.innerHTML=insights.length?insights.map(i=>`<div class="${cMap[i.t]||'insight-neutral'} insight-pill" style="display:flex;width:100%;border-radius:0.5rem;padding:8px 12px;margin:3px 0"><span style="font-size:12px">${i.tx}</span></div>`).join(''):'<p class="text-xs text-slate-500">Añade más detalles a tus operaciones.</p>';
+    }
+
+    renderPsychDetail(trades,acc){
+        const el=document.getElementById('psychDetailContainer'); if(!el) return;
+        const colors={'Neutro':'#94a3b8','Confiado':'#22c55e','Ansioso':'#f59e0b','Eufórico':'#3b82f6','Venganza':'#ef4444','FOMO':'#f97316','Miedo':'#8b5cf6','Aburrido':'#64748b'};
+        const stats={}; trades.forEach(t=>{ const m=t.mentalState||'Neutro'; if(!stats[m]) stats[m]={w:0,l:0,b:0,pl:0}; if(t.result==='WIN') stats[m].w++; else if(t.result==='LOSS') stats[m].l++; else stats[m].b++; stats[m].pl+=this.calcPL(t,acc.initialCapital); });
+        el.innerHTML=Object.entries(stats).sort((a,b)=>(b[1].w+b[1].l+b[1].b)-(a[1].w+a[1].l+a[1].b)).map(([state,s])=>{
+            const tot=s.w+s.l+s.b; const wr=(s.w+s.l)>0?(s.w/(s.w+s.l)*100):0; const c=colors[state]||'#94a3b8';
+            return `<div class="psych-card" style="border-color:${c}33;background:${c}08">
+                <div class="flex justify-between items-center"><span class="text-sm font-semibold" style="color:${c}">${state}</span><span class="text-xs text-slate-400">${tot} ops · WR ${wr.toFixed(0)}%</span></div>
+                <div class="psych-bar mt-2"><div class="psych-fill" style="width:${wr}%;background:${c}"></div></div>
+                <div class="flex justify-between text-xs mt-1"><span class="text-green-400">${s.w}W</span><span class="text-red-400">${s.l}L</span><span class="text-orange-400">${s.b}BE</span><span style="color:${s.pl>=0?'#4ade80':'#f87171'}">${s.pl>=0?'+':''}$${s.pl.toFixed(0)}</span></div>
+            </div>`;
+        }).join('')||'<p class="text-xs text-slate-500">Sin datos.</p>';
+    }
+
+    renderRulesChart(trades,acc){
+        const cats=['Sí','Parcial','No'];
+        const cData=cats.map(cat=>{ const g=trades.filter(t=>t.rulesFollowed===cat); const w=g.filter(t=>t.result==='WIN').length; const tot=g.filter(t=>t.result!=='BE').length; return {cat,wr:tot>0?(w/tot*100):0,count:g.length}; }).filter(d=>d.count>0);
+        if(cData.length){
+            Plotly.newPlot('rulesAdherenceChart',[{x:cData.map(d=>d.cat),y:cData.map(d=>d.wr.toFixed(1)),type:'bar',name:'WR%',marker:{color:['#22c55e','#f59e0b','#ef4444']},text:cData.map(d=>d.count+'t'),textposition:'outside'}],
+                {xaxis:{color:'#94a3b8'},yaxis:{title:'WR%',color:'#94a3b8'},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:'#94a3b8'},margin:{t:20,b:30,l:45,r:10},showlegend:false},{displayModeBar:false,responsive:true});
+        }
+        const bEl=document.getElementById('rulesBreakList');
+        if(bEl){
+            const bCounts={}; trades.filter(t=>t.rulesBreak).forEach(t=>{ bCounts[t.rulesBreak]=(bCounts[t.rulesBreak]||0)+1; });
+            bEl.innerHTML=Object.keys(bCounts).length?'<p class="text-xs text-slate-500 mb-2">Reglas incumplidas frecuentes:</p>'+Object.entries(bCounts).sort((a,b)=>b[1]-a[1]).map(([r,n])=>`<div class="flex justify-between text-xs py-1 border-b border-slate-700/50"><span class="text-slate-300">${r}</span><span class="text-red-400 font-bold">${n}x</span></div>`).join(''):'<p class="text-xs text-slate-500">Sin reglas incumplidas registradas. ✅</p>';
+        }
+    }
+
+    initWeekNav(){
+        if(this._weekNavInit) return; this._weekNavInit=true; this._weekOffset=0;
+        document.getElementById('weekNavPrev')?.addEventListener('click',()=>{ this._weekOffset--; this.renderPsychWeek(); });
+        document.getElementById('weekNavNext')?.addEventListener('click',()=>{ if(this._weekOffset<0){ this._weekOffset++; this.renderPsychWeek(); } });
+    }
+    renderPsychWeek(){
+        const acc=this.getAccountById(this.activeAccount); if(!acc) return;
+        const trades=this.trades.filter(t=>t.accountId===this.activeAccount&&t.result!=='OPEN');
+        this.renderWeeklyReview(trades,acc);
+    }
+
+    renderWeeklyReview(trades,acc){
+        const el=document.getElementById('weeklyReviewContent'); if(!el) return;
+        const now=new Date(); const offset=this._weekOffset||0;
+        const sow=new Date(now); sow.setDate(now.getDate()-now.getDay()+(offset*7)); sow.setHours(0,0,0,0);
+        const eow=new Date(sow); eow.setDate(sow.getDate()+6);
+        const s=sow.toISOString().split('T')[0]; const e=eow.toISOString().split('T')[0];
+        const lbl=document.getElementById('weekLabel'); if(lbl) lbl.textContent=offset===0?'Esta semana':`Sem. ${s}`;
+        const wt=trades.filter(t=>t.date>=s&&t.date<=e);
+        if(!wt.length){ el.innerHTML='<p class="text-xs text-slate-500 text-center py-4">Sin operaciones.</p>'; return; }
+        const w=wt.filter(t=>t.result==='WIN'),l=wt.filter(t=>t.result==='LOSS'),b=wt.filter(t=>t.result==='BE');
+        const pl=wt.reduce((s,t)=>s+this.calcPL(t,acc.initialCapital),0);
+        const wr=(w.length+l.length)>0?(w.length/(w.length+l.length)*100):0;
+        const pairCount=wt.reduce((m,t)=>{ m[t.pair]=(m[t.pair]||0)+1; return m; },{});
+        const topPair=Object.entries(pairCount).sort((a,b)=>b[1]-a[1])[0]?.[0]||'-';
+        el.innerHTML=`<div class="review-card">
+            <h4>Resumen Semanal</h4>
+            <div class="review-item">Operaciones<span>${wt.length}</span></div>
+            <div class="review-item">W/L/BE<span><span class="text-green-400">${w.length}</span> / <span class="text-red-400">${l.length}</span> / <span class="text-orange-400">${b.length}</span></span></div>
+            <div class="review-item">Win Rate<span style="color:${wr>=50?'#4ade80':'#f87171'}">${wr.toFixed(1)}%</span></div>
+            <div class="review-item">P&L semana<span style="color:${pl>=0?'#4ade80':'#f87171'}">${pl>=0?'+':''}$${pl.toFixed(2)}</span></div>
+            <div class="review-item">Activo principal<span>${topPair}</span></div>
+            <div class="review-item">Reglas seguidas<span>${wt.filter(t=>t.rulesFollowed==='Sí').length} / ${wt.length}</span></div>
+        </div>`;
+    }
+
+    renderMonthlyReview(trades,acc){
+        const el=document.getElementById('monthlyReviewContent'); if(!el) return;
+        const now=new Date(); const prefix=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+        const mt=trades.filter(t=>t.date?.startsWith(prefix));
+        if(!mt.length){ el.innerHTML='<p class="text-xs text-slate-500">Sin operaciones este mes.</p>'; return; }
+        const w=mt.filter(t=>t.result==='WIN'),l=mt.filter(t=>t.result==='LOSS');
+        const pl=mt.reduce((s,t)=>s+this.calcPL(t,acc.initialCapital),0);
+        const wr=(w.length+l.length)>0?(w.length/(w.length+l.length)*100):0;
+        const gW=w.reduce((s,t)=>s+this.calcPL(t,acc.initialCapital),0);
+        const gL=Math.abs(l.reduce((s,t)=>s+this.calcPL(t,acc.initialCapital),0));
+        const pf=gL>0?gW/gL:0;
+        el.innerHTML=`<div class="review-card">
+            <h4>Mes Actual</h4>
+            <div class="review-item">Operaciones<span>${mt.length}</span></div>
+            <div class="review-item">Win Rate<span style="color:${wr>=50?'#4ade80':'#f87171'}">${wr.toFixed(1)}%</span></div>
+            <div class="review-item">Profit Factor<span style="color:${pf>=1.5?'#4ade80':pf>=1?'#fb923c':'#f87171'}">${pf.toFixed(2)}</span></div>
+            <div class="review-item">P&L mes<span style="color:${pl>=0?'#4ade80':'#f87171'}">${pl>=0?'+':''}$${pl.toFixed(2)}</span></div>
+        </div>`;
+    }
+
+    // ── CONFIGURACIÓN ─────────────────────────────────────────────────
+    setupConfigListeners(){
+        document.getElementById('addPairBtn')?.addEventListener('click',()=>{ const v=document.getElementById('newPairInput')?.value.trim().toUpperCase(); if(v&&!this.config.pairs.includes(v)){ this.config.pairs.push(v); this.saveConfig(); this.renderConfig(); document.getElementById('newPairInput').value=''; } });
+        document.getElementById('addStrategyBtn')?.addEventListener('click',()=>{ const v=document.getElementById('newStrategyInput')?.value.trim(); if(v&&!this.config.strategies.includes(v)){ this.config.strategies.push(v); this.saveConfig(); this.renderConfig(); document.getElementById('newStrategyInput').value=''; } });
+        document.getElementById('addSetupBtn')?.addEventListener('click',()=>{ const v=document.getElementById('newSetupInput')?.value.trim(); if(v&&!this.config.setups.includes(v)){ this.config.setups.push(v); this.saveConfig(); this.renderConfig(); document.getElementById('newSetupInput').value=''; } });
+        document.getElementById('exportBtn')?.addEventListener('click',()=>this.exportCSV());
+        document.getElementById('exportJsonBtn')?.addEventListener('click',()=>this.exportJSON());
+        document.getElementById('importJsonBtn')?.addEventListener('click',()=>document.getElementById('importJsonInput')?.click());
+        document.getElementById('importJsonInput')?.addEventListener('change',e=>this.importJSON(e));
+        document.getElementById('resetAllBtn')?.addEventListener('click',()=>{ if(confirm('¿Borrar TODOS los datos? No se puede deshacer.')){ localStorage.clear(); location.reload(); } });
+        document.getElementById('toggleFilters')?.addEventListener('click',()=>{ const fp=document.getElementById('filterPanel'); if(!fp) return; const h=fp.classList.toggle('hidden'); const btn=document.getElementById('toggleFilters'); if(btn) btn.textContent=h?'Mostrar':'Ocultar'; });
+        document.getElementById('applyFilters')?.addEventListener('click',()=>this.applyFilters());
+        document.getElementById('clearFilters')?.addEventListener('click',()=>this.clearFilters());
+    }
+
+    saveConfig(){ DB.save('tj_config',this.config); }
+
+    renderConfig(){
+        const al=document.getElementById('accountsList');
+        if(al) al.innerHTML=!this.accounts.length?'<p class="text-xs text-slate-500">No hay cuentas.</p>':this.accounts.map(a=>{
+            const bal=this.getAccountBalance(a.id); const pnl=bal-a.initialCapital; const pct=pnl/a.initialCapital*100;
+            return `<div class="glass-effect p-3 flex items-center justify-between">
+                <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full flex-shrink-0" style="background:${a.color}"></div>
+                <div><div class="font-semibold text-white text-sm">${a.name}</div><div class="text-xs text-slate-400">$${a.initialCapital.toLocaleString('en')} · DD ${a.maxDD}% · Obj ${a.target}%</div></div></div>
+                <div class="text-right"><div class="font-semibold text-sm" style="color:${pnl>=0?'#22c55e':'#ef4444'}">${pct>=0?'+':''}${pct.toFixed(1)}%</div>
+                <button onclick="journal.deleteAccount('${a.id}')" class="text-xs text-red-400 mt-1 block">Eliminar</button></div>
+            </div>`;
+        }).join('');
+        this.renderTags('pairTagsContainer', this.config.pairs, 'pairs');
+        this.renderTags('strategyTagsContainer', this.config.strategies, 'strategies');
+        this.renderTags('setupTagsContainer', this.config.setups, 'setups');
+    }
+
+    renderTags(id, items, type){
+        const el=document.getElementById(id); if(!el) return;
+        el.innerHTML=items.map((item,i)=>`<span class="config-tag">${item}<span class="remove" onclick="journal.removeConfigItem('${type}',${i})">✕</span></span>`).join('');
+    }
+
+    removeConfigItem(type,idx){ this.config[type].splice(idx,1); this.saveConfig(); this.renderConfig(); }
+
+    deleteAccount(id){
+        const t=this.trades.filter(t=>t.accountId===id).length;
+        if(t>0&&!confirm(`Esta cuenta tiene ${t} operaciones. ¿Eliminar?`)) return;
+        this.accounts=this.accounts.filter(a=>a.id!==id); DB.save('tj_accounts',this.accounts);
+        if(this.activeAccount===id){ this.activeAccount=this.accounts.length?this.accounts[0].id:null; DB.save('tj_activeAccount',this.activeAccount); }
+        this.populateAccountSelector(); this.renderConfig(); this.renderDashboard();
+        showToast('Cuenta eliminada','info');
+    }
+
+    // ── EXPORT / IMPORT ───────────────────────────────────────────────
+    exportCSV(){
+        if(!this.trades.length){ showToast('Sin datos','error'); return; }
+        const h=['Cuenta','Fecha','Hora','Activo','Dir','TF','Sesión','Estrategia','Setup','Fib','Riesgo','Tipo','Resultado','RR Plan','RR Real','PnL','Mental','Reglas','Causa LOSS','Notas'];
+        const rows=this.trades.map(t=>{ const a=this.getAccountById(t.accountId); const pl=a?this.calcPL(t,a.initialCapital):0;
+            return [a?.name||'?',t.date,t.time,t.pair,t.direction,t.timeframe,t.session,t.strategy,t.poi,t.fibLevel,t.riskValue,t.riskType,t.result,t.rrPlanned,t.rrReal,pl.toFixed(2),t.mentalState,t.rulesFollowed,t.lossCause,t.notes].map(v=>`"${v||''}"`) });
+        const csv=[h,...rows].map(r=>r.join(',')).join('\n');
+        const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download=`diario_${new Date().toISOString().split('T')[0]}.csv`; a.click();
+        showToast('CSV exportado ✓');
+    }
+
+    exportJSON(){
+        const data={trades:this.trades,accounts:this.accounts,config:this.config,exportedAt:new Date().toISOString()};
+        const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'})); a.download=`backup_diario_${new Date().toISOString().split('T')[0]}.json`; a.click();
+        showToast('Backup creado ✓');
+    }
+
+    importJSON(e){
+        const file=e.target.files[0]; if(!file) return;
+        const reader=new FileReader();
+        reader.onload=ev=>{ try {
+            const data=JSON.parse(ev.target.result);
+            if(!data.trades||!data.accounts){ showToast('Archivo inválido','error'); return; }
+            if(!confirm(`¿Restaurar? Se reemplazarán ${this.trades.length} operaciones actuales.`)) return;
+            this.trades=data.trades||[]; this.accounts=data.accounts||[]; this.config=data.config||this.config;
+            DB.save('tj_trades',this.trades); DB.save('tj_accounts',this.accounts); DB.save('tj_config',this.config);
+            this.filteredTrades=[...this.trades]; if(this.accounts.length) this.activeAccount=this.accounts[0].id;
+            this.populateAccountSelector(); this.renderDashboard(); this.renderTrades(); this.renderConfig();
+            showToast(`Restaurado: ${this.trades.length} operaciones ✓`);
+        } catch(err){ showToast('Error al leer el archivo','error'); } };
+        reader.readAsText(file); e.target.value='';
+    }
+}
+
+// ── ARRANQUE ──────────────────────────────────────────────────────────
+const journal = new TradingJournal();
+</script>
+</body>
+</html>
