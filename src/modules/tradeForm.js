@@ -3,13 +3,13 @@
  */
 import { showToast, openModal, closeModal } from '../utils/helpers.js';
 import { calcPL } from '../utils/calculations.js';
-import { DB } from '../db.js';
+import { saveTrade } from '../db.js';
 
 // ── SETUP ──────────────────────────────────────────────────────────────────
 
 export function setupTradeForm(j) {
   document.getElementById('addTradeBtn')?.addEventListener('click', () => openTradeModal(j));
-  document.getElementById('tradeForm')?.addEventListener('submit', e => { e.preventDefault(); saveTradeFromForm(j); });
+  document.getElementById('tradeForm')?.addEventListener('submit', async e => { e.preventDefault(); await saveTradeFromForm(j); });
   document.getElementById('tradeResult')?.addEventListener('change', e => {
     document.getElementById('lossCauseSection')?.classList.toggle('show', e.target.value === 'LOSS');
   });
@@ -191,7 +191,7 @@ export function fillTradeForm(j, t) {
   if (t.rulesFollowed && t.rulesFollowed !== 'Sí') document.getElementById('rulesBreakSection')?.classList.add('show');
 }
 
-export function saveTradeFromForm(j) {
+export async function saveTradeFromForm(j) {
   const g = id => document.getElementById(id)?.value || '';
   const accountId = g('tradeAccount');
   if (!accountId) { showToast('Selecciona una cuenta', 'error'); return; }
@@ -221,20 +221,31 @@ export function saveTradeFromForm(j) {
   };
   if (!data.date) { showToast('La fecha es requerida', 'error'); return; }
   if (!data.pair)  { showToast('El activo es requerido', 'error'); return; }
-  if (j.editTradeId) {
-    const idx = j.trades.findIndex(t => t.id === j.editTradeId);
-    if (idx !== -1) j.trades[idx] = { ...j.trades[idx], ...data };
-    showToast('Operación actualizada');
-  } else {
-    data.id = Date.now().toString(); data.createdAt = new Date().toISOString();
-    j.trades.unshift(data);
-    showToast('Operación guardada ✓');
+
+  const btn = document.getElementById('saveTradeBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+
+  try {
+    if (j.editTradeId) {
+      data.id = j.editTradeId;
+      const saved = await saveTrade(data, j.userId);
+      if (saved) { const idx = j.trades.findIndex(t => t.id === j.editTradeId); if (idx !== -1) j.trades[idx] = saved; }
+      showToast('Operación actualizada');
+    } else {
+      const saved = await saveTrade(data, j.userId);
+      if (saved) j.trades.unshift(saved);
+      showToast('Operación guardada ✓');
+    }
+    j.filteredTrades = [...j.trades];
+    closeTradeModal(j);
+    j.renderDashboard();
+    j.renderTrades();
+  } catch (err) {
+    showToast('Error al guardar', 'error');
+    console.error(err);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; }
   }
-  DB.save('tj_trades', j.trades);
-  j.filteredTrades = [...j.trades];
-  closeTradeModal(j);
-  j.renderDashboard();
-  j.renderTrades();
 }
 
 export function deleteTrade(j, id) {
