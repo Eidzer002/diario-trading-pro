@@ -2,13 +2,8 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   build: {
+    target: 'esnext',
     outDir: 'dist',
     assetsDir: 'assets',
-    // Plotly y Tailwind se cargan desde CDN, no necesitan bundle
-    rollupOptions: {
-      output: {
-        manualChunks: undefined,
-      },
-    },
   },
 });
