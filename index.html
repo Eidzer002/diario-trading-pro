@@ -11,6 +11,43 @@
 </head>
 <body class="text-slate-300">
 
+<!-- PANTALLA DE AUTH -->
+<div id="authScreen" class="fixed inset-0 z-50 flex items-center justify-center" style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%)">
+  <div class="w-full max-w-sm px-6">
+    <div class="text-center mb-8">
+      <div class="text-5xl mb-3">📊</div>
+      <h1 class="text-2xl font-bold text-white">Diario de Trading Pro</h1>
+      <p class="text-sm text-slate-400 mt-1">Tu rendimiento, en tus manos</p>
+    </div>
+    <div class="glass-effect p-6 rounded-2xl">
+      <h2 id="authTitle" class="text-lg font-bold text-white mb-5">Iniciar sesión</h2>
+      <form id="authForm" class="space-y-4" novalidate>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Email</label>
+          <input id="authEmail" type="email" class="form-input" placeholder="tu@email.com" required>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Contraseña</label>
+          <input id="authPassword" type="password" class="form-input" placeholder="Mínimo 6 caracteres" required>
+        </div>
+        <div id="authConfirmGroup" class="hidden">
+          <label class="block text-xs text-slate-400 mb-1">Confirmar contraseña</label>
+          <input id="authConfirm" type="password" class="form-input" placeholder="Repite la contraseña">
+        </div>
+        <p id="authError" class="hidden text-xs text-red-400 bg-red-400/10 rounded p-2"></p>
+        <button id="authSubmitBtn" type="submit" class="btn-primary w-full py-3 text-sm font-semibold">Entrar</button>
+      </form>
+      <div class="text-center mt-4 text-xs text-slate-400">
+        <span id="authToggleText">¿No tienes cuenta?</span>
+        <button id="authToggleBtn" class="text-blue-400 ml-1 font-medium">Regístrate</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APP PRINCIPAL -->
+<div id="appScreen" class="hidden">
+
 <!-- Toast -->
 <div id="toast" class="toast"></div>
 
@@ -421,7 +458,7 @@
             </div>
 
             <div class="flex space-x-3 pt-4 border-t border-slate-700">
-                <button type="submit" class="btn-primary flex-1 py-3"><i class="fas fa-save mr-2"></i>Guardar</button>
+                <button type="submit" id="saveTradeBtn" class="btn-primary flex-1 py-3"><i class="fas fa-save mr-2"></i>Guardar</button>
                 <button type="button" onclick="journal.closeTradeModal()" class="btn-secondary flex-1 py-3">Cancelar</button>
             </div>
         </form>
@@ -436,7 +473,8 @@
             <span class="font-bold text-white text-sm">Diario de Trading</span>
         </div>
         <div class="flex items-center gap-2">
-            <select id="accountSelector" class="form-select text-xs py-1 px-2" style="min-width:120px"></select>
+            <select id="accountSelector" class="form-select text-xs py-1 px-2" style="min-width:100px"></select>
+            <button id="logoutBtn" title="Cerrar sesión" class="text-slate-400 hover:text-red-400 p-1 text-xs"><i class="fas fa-sign-out-alt"></i></button>
         </div>
     </div>
 </header>
@@ -909,6 +947,7 @@
     </div>
 </nav>
 
+</div><!-- /appScreen -->
 
     <script type="module" src="/src/main.js"></script>
 </body>
