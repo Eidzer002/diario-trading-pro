@@ -19,7 +19,9 @@ function rowToTrade(r) {
     result: r.result, rrReal: r.rr_real, lossCause: r.loss_cause,
     ignoredNews: r.ignored_news, closeDate: r.close_date,
     closeTime: r.close_time, notes: r.notes, tags: r.tags || [],
-    duration: r.duration, createdAt: r.created_at, updatedAt: r.updated_at,
+    duration: r.duration, htfTimeframe: r.htf_timeframe,
+    checklist: r.checklist || [],
+    createdAt: r.created_at, updatedAt: r.updated_at,
   };
 }
 
@@ -40,6 +42,8 @@ function tradeToRow(t, userId) {
     ignored_news: t.ignoredNews, close_date: t.closeDate || null,
     close_time: t.closeTime || null, notes: t.notes,
     tags: t.tags || [], duration: t.duration,
+    htf_timeframe: t.htfTimeframe || null,
+    checklist: t.checklist || [],
     updated_at: new Date().toISOString(),
   };
 }
@@ -110,13 +114,13 @@ export async function removeAccount(id) {
 
 export async function loadConfig(userId) {
   const { data } = await supabase.from('user_config').select('*').eq('user_id', userId).maybeSingle();
-  if (!data) return { pairs: ['XAUUSD','NAS100','EURUSD','GBPUSD','BTCUSD'], strategies: ['SMC/ICT','Price Action','Tendencia'], setups: ['BPR','OB+FVG','Breaker+FVG','OB+Fib','IFVG+Fib','EMA Bounce'] };
-  return { pairs: data.pairs, strategies: data.strategies, setups: data.setups };
+  if (!data) return { pairs: ['XAUUSD','NAS100','EURUSD','GBPUSD','BTCUSD'], strategies: ['SMC/ICT','Price Action','Tendencia'], setups: ['BPR','OB+FVG','Breaker+FVG','OB+Fib','IFVG+Fib','EMA Bounce'], checklistItems: ['Estructura HTF alcista/bajista confirmada','Hay un POI válido (OB / FVG / BPR)','El precio llegó al POI sin estar extendido','Confluencia Fibonacci 61.8–78.6%','Sin noticias de alto impacto en los próximos 30 min','Riesgo no supera el límite diario'] };
+  return { pairs: data.pairs, strategies: data.strategies, setups: data.setups, checklistItems: data.checklist_items || [] };
 }
 
 export async function saveConfig(config, userId) {
   const { error } = await supabase.from('user_config').upsert(
-    { user_id: userId, pairs: config.pairs, strategies: config.strategies, setups: config.setups, updated_at: new Date().toISOString() },
+    { user_id: userId, pairs: config.pairs, strategies: config.strategies, setups: config.setups, checklist_items: config.checklistItems || [], updated_at: new Date().toISOString() },
     { onConflict: 'user_id' }
   );
   if (error) console.error('saveConfig:', error);
@@ -126,3 +130,32 @@ export const local = {
   getActiveAccount: () => localStorage.getItem('tj_activeAccount'),
   setActiveAccount: (id) => localStorage.setItem('tj_activeAccount', id),
 };
+
+// ── DAILY NOTES ──────────────────────────────────────────────────────────────
+
+export async function loadDailyNotes() {
+  const { data, error } = await supabase
+    .from('daily_notes').select('*').order('date', { ascending: false }).order('created_at', { ascending: false });
+  if (error) { console.error('loadDailyNotes:', error); return []; }
+  return data.map(r => ({
+    id: r.id, date: r.date, session: r.session, mood: r.mood,
+    content: r.content, createdAt: r.created_at, updatedAt: r.updated_at,
+  }));
+}
+
+export async function saveDailyNote(note, userId) {
+  const row = { user_id: userId, date: note.date, session: note.session || null, mood: note.mood || null, content: note.content || '', updated_at: new Date().toISOString() };
+  if (note.id) {
+    const { error } = await supabase.from('daily_notes').update(row).eq('id', note.id);
+    if (error) { console.error('updateDailyNote:', error); return null; }
+    return note;
+  }
+  const { data, error } = await supabase.from('daily_notes').insert(row).select().single();
+  if (error) { console.error('insertDailyNote:', error); return null; }
+  return { id: data.id, date: data.date, session: data.session, mood: data.mood, content: data.content, createdAt: data.created_at, updatedAt: data.updated_at };
+}
+
+export async function removeDailyNote(id) {
+  const { error } = await supabase.from('daily_notes').delete().eq('id', id);
+  if (error) console.error('deleteDailyNote:', error);
+}

@@ -13,8 +13,14 @@ window.closeModal = closeModal;
 const authScreen = document.getElementById('authScreen');
 const appScreen  = document.getElementById('appScreen');
 
-function showAuth()  { authScreen?.classList.remove('hidden'); appScreen?.classList.add('hidden'); }
-function showApp()   { authScreen?.classList.add('hidden');    appScreen?.classList.remove('hidden'); }
+function showAuth() {
+  if (authScreen) authScreen.style.display = 'flex';
+  if (appScreen)  appScreen.style.display  = 'none';
+}
+function showApp() {
+  if (authScreen) authScreen.style.display = 'none';
+  if (appScreen)  appScreen.style.display  = 'block';
+}
 
 let journalInstance = null;
 

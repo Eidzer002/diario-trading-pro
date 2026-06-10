@@ -4,6 +4,7 @@
 import { showToast, openModal, closeModal } from '../utils/helpers.js';
 import { calcPL } from '../utils/calculations.js';
 import { saveTrade } from '../db.js';
+import { openChecklistModal } from './checklist.js';
 
 // ── SETUP ──────────────────────────────────────────────────────────────────
 
@@ -176,7 +177,7 @@ export function fillTradeForm(j, t) {
   const f = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
   f('tradeAccount', t.accountId); f('tradeDate', t.date); f('tradeTime', t.time);
   f('tradePair', t.pair); f('tradeDirection', t.direction); f('tradeTimeframe', t.timeframe);
-  f('tradeSession', t.session); f('tradeStrategy', t.strategy); f('tradePOI', t.poi);
+  f('tradeHTFTimeframe', t.htfTimeframe); f('tradeSession', t.session); f('tradeStrategy', t.strategy); f('tradePOI', t.poi);
   f('tradeFibLevel', t.fibLevel); f('tradeTrendHTF', t.trendHTF); f('tradeAligned', t.aligned);
   f('confluenceDetails', t.confluenceDetails);
   f('tradeEntryPrice', t.entryPrice); f('tradeSLPrice', t.slPrice); f('tradeTPPrice', t.tpPrice); f('tradeClosePrice', t.closePrice);
@@ -198,7 +199,8 @@ export async function saveTradeFromForm(j) {
   const data = {
     accountId, date: g('tradeDate'), time: g('tradeTime'),
     pair: g('tradePair').toUpperCase(), direction: g('tradeDirection'),
-    timeframe: g('tradeTimeframe'), session: g('tradeSession'),
+    timeframe: g('tradeTimeframe'), htfTimeframe: g('tradeHTFTimeframe') || null,
+    session: g('tradeSession'),
     strategy: g('tradeStrategy'), poi: g('tradePOI'), fibLevel: g('tradeFibLevel'),
     trendHTF: g('tradeTrendHTF'), aligned: g('tradeAligned'),
     confluenceDetails: g('confluenceDetails'),
@@ -222,6 +224,21 @@ export async function saveTradeFromForm(j) {
   if (!data.date) { showToast('La fecha es requerida', 'error'); return; }
   if (!data.pair)  { showToast('El activo es requerido', 'error'); return; }
 
+  // Si hay checklist configurado y es una operación nueva, mostrar el checklist
+  const checklistItems = j.config.checklistItems || [];
+  if (checklistItems.length > 0 && !j.editTradeId) {
+    openChecklistModal(j, async (checklist) => {
+      data.checklist = checklist;
+      await _doSaveTrade(j, data);
+    });
+    return;
+  }
+
+  data.checklist = [];
+  await _doSaveTrade(j, data);
+}
+
+async function _doSaveTrade(j, data) {
   const btn = document.getElementById('saveTradeBtn');
   if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
 
@@ -234,7 +251,17 @@ export async function saveTradeFromForm(j) {
     } else {
       const saved = await saveTrade(data, j.userId);
       if (saved) j.trades.unshift(saved);
-      showToast('Operación guardada ✓');
+
+      // Feedback del checklist
+      if (data.checklist && data.checklist.length > 0) {
+        const checked = data.checklist.filter(c => c.checked).length;
+        const total   = data.checklist.length;
+        const score   = Math.round(checked / total * 100);
+        const color   = score === 100 ? '✅' : score >= 70 ? '⚠️' : '🔴';
+        showToast(`${color} Checklist: ${checked}/${total} (${score}%)`);
+      } else {
+        showToast('Operación guardada ✓');
+      }
     }
     j.filteredTrades = [...j.trades];
     closeTradeModal(j);
@@ -348,7 +375,7 @@ export function renderTrades(j) {
       </div>
       <div class="flex items-center gap-2 text-xs text-slate-400 mb-2">
         <span><i class="fas fa-calendar mr-1"></i>${t.date || ''} ${t.time || ''}</span>
-        <span>${t.timeframe || ''}</span>
+        ${t.htfTimeframe ? `<span class="text-slate-500">${t.htfTimeframe}<i class="fas fa-arrow-right mx-0.5 text-slate-600 text-xs"></i>${t.timeframe || ''}</span>` : `<span>${t.timeframe || ''}</span>`}
         ${acc ? `<span class="account-badge" style="background:${acc.color}22;color:${acc.color}">${acc.name}</span>` : ''}
       </div>
       <div class="grid grid-cols-3 gap-2 text-xs mb-2">
@@ -368,6 +395,13 @@ export function renderTrades(j) {
       </div>` : ''}
       ${t.lossCause ? `<div class="text-xs text-red-400 mb-2"><i class="fas fa-exclamation-circle mr-1"></i>${t.lossCause}</div>` : ''}
       ${(t.tags && t.tags.length) ? `<div class="flex flex-wrap gap-1 mb-2">${t.tags.map(tag => `<span class="tag-pill-sm">${tag}</span>`).join('')}</div>` : ''}
+      ${(t.checklist && t.checklist.length) ? (() => {
+        const checked = t.checklist.filter(c => c.checked).length;
+        const total   = t.checklist.length;
+        const score   = Math.round(checked / total * 100);
+        const color   = score === 100 ? '#4ade80' : score >= 70 ? '#fb923c' : '#f87171';
+        return `<div class="flex items-center gap-1 text-xs mb-2" style="color:${color}"><i class="fas fa-clipboard-check"></i><span>Checklist ${checked}/${total}</span></div>`;
+      })() : ''}
       ${t.notes ? `<div class="text-xs text-slate-400 mb-2 italic">"${t.notes.substring(0, 80)}${t.notes.length > 80 ? '...' : ''}"</div>` : ''}
     </div>`;
   }).join('');

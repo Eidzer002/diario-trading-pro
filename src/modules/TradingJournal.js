@@ -1,7 +1,7 @@
 /**
  * TradingJournal.js — Clase principal (async con Supabase)
  */
-import { local, loadTrades, loadAccounts, loadConfig, saveConfig, saveAccount, removeAccount } from '../db.js';
+import { local, loadTrades, loadAccounts, loadConfig, saveConfig, saveAccount, removeAccount, loadDailyNotes, saveDailyNote, removeDailyNote } from '../db.js';
 import { showToast, openModal, closeModal }  from '../utils/helpers.js';
 import { calcPL }                            from '../utils/calculations.js';
 import { renderDashboard, initCalendar, renderCalendar } from './dashboard.js';
@@ -9,13 +9,16 @@ import { renderAnalysis }   from './analysis.js';
 import { renderPsychology } from './psychology.js';
 import { setupTradeForm, setupLotCalculator, openTradeModal, closeTradeModal,
          renderTrades, applyFilters, clearFilters, setupTagInput } from './tradeForm.js';
+import { setupChecklist, renderChecklistConfig, setupChecklistConfig } from './checklist.js';
+import { setupDailyNotes, renderDailyNotes, editDailyNote } from './dailyNotes.js';
 
 export class TradingJournal {
   constructor(userId) {
     this.userId         = userId;
     this.trades         = [];
     this.accounts       = [];
-    this.config         = { pairs: [], strategies: [], setups: [] };
+    this.config         = { pairs: [], strategies: [], setups: [], checklistItems: [] };
+    this.dailyNotes     = [];
     this.activeAccount  = local.getActiveAccount();
     this.editTradeId    = null;
     this.filteredTrades = [];
@@ -26,14 +29,16 @@ export class TradingJournal {
   // ── INIT (async) ──────────────────────────────────────────────────────
   async init() {
     // Cargar datos del usuario desde Supabase
-    const [trades, accounts, config] = await Promise.all([
+    const [trades, accounts, config, dailyNotes] = await Promise.all([
       loadTrades(),
       loadAccounts(),
       loadConfig(this.userId),
+      loadDailyNotes(),
     ]);
-    this.trades   = trades;
-    this.accounts = accounts;
-    this.config   = config;
+    this.trades      = trades;
+    this.accounts    = accounts;
+    this.config      = config;
+    this.dailyNotes  = dailyNotes;
     this.filteredTrades = [...this.trades];
 
     // Validar activeAccount
@@ -48,8 +53,16 @@ export class TradingJournal {
     this.setupConfigListeners();
     setupLotCalculator(this);
     setupTagInput(this);
+    setupChecklist(this);
+    setupDailyNotes(this);
+    setupChecklistConfig(this);
     initCalendar(this);
     this.populateAccountSelector();
+
+    // Exponer métodos necesarios para onclick inline
+    window.journal = this;
+    window.journal.editDailyNote    = (id) => { editDailyNote(this, id); };
+    window.journal.removeChecklistItem = (idx) => this.removeChecklistItem(idx);
 
     if (!this.accounts.length) {
       setTimeout(() => openModal('setupModal'), 400);
@@ -79,7 +92,7 @@ export class TradingJournal {
     document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.section === name));
     ({ dashboard: () => this.renderDashboard(), analisis: () => this.renderAnalysis(),
        config: () => this.renderConfig(), registro: () => this.renderTrades(),
-       psicologia: () => this.renderPsychology() })[name]?.();
+       psicologia: () => this.renderPsychology(), notas: () => this.renderDailyNotes() })[name]?.();
   }
 
   // ── DELEGATION ────────────────────────────────────────────────────────
@@ -88,6 +101,7 @@ export class TradingJournal {
   renderPsychology() { renderPsychology(this); }
   renderTrades()     { renderTrades(this); }
   renderCalendar()   { renderCalendar(this); }
+  renderDailyNotes() { renderDailyNotes(this); }
 
   openTradeModal(id = null) { openTradeModal(this, id); }
   closeTradeModal()          { closeTradeModal(this); }
@@ -230,6 +244,7 @@ export class TradingJournal {
     this.renderTags('pairTagsContainer',     this.config.pairs,      'pairs');
     this.renderTags('strategyTagsContainer', this.config.strategies, 'strategies');
     this.renderTags('setupTagsContainer',    this.config.setups,     'setups');
+    renderChecklistConfig(this);
   }
 
   renderTags(id, items, type) {
@@ -253,6 +268,33 @@ export class TradingJournal {
     local.setActiveAccount(null);
     this.populateAccountSelector(); this.renderDashboard(); this.renderTrades(); this.renderConfig();
     showToast('Datos eliminados', 'info');
+  }
+
+  async removeChecklistItem(idx) {
+    this.config.checklistItems.splice(idx, 1);
+    await saveConfig(this.config, this.userId);
+    renderChecklistConfig(this);
+  }
+
+  // ── DAILY NOTES ───────────────────────────────────────────────────────
+  async saveDailyNote(note) {
+    const saved = await saveDailyNote(note, this.userId);
+    if (!saved) return;
+    if (note.id) {
+      const idx = this.dailyNotes.findIndex(n => n.id === note.id);
+      if (idx >= 0) this.dailyNotes[idx] = saved;
+    } else {
+      this.dailyNotes.unshift(saved);
+    }
+    return saved;
+  }
+
+  async deleteDailyNote(id) {
+    if (!confirm('¿Eliminar esta nota?')) return;
+    await removeDailyNote(id);
+    this.dailyNotes = this.dailyNotes.filter(n => n.id !== id);
+    renderDailyNotes(this);
+    showToast('Nota eliminada', 'info');
   }
 
   // ── EXPORT / IMPORT ───────────────────────────────────────────────────
