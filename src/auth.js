@@ -26,5 +26,10 @@ export async function signOut() {
 }
 
 export function onAuthChange(callback) {
-  return supabase.auth.onAuthStateChange((_event, session) => callback(session));
+  return supabase.auth.onAuthStateChange((event, session) => {
+    // INITIAL_SESSION se maneja por getSession() en el arranque.
+    // Aquí solo reaccionamos a cambios reales: login, logout, refresh.
+    if (event === 'INITIAL_SESSION') return;
+    callback(event, session);
+  });
 }

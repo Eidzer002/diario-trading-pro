@@ -91,19 +91,28 @@ document.getElementById('authForm')?.addEventListener('submit', async (e) => {
 });
 
 document.getElementById('logoutBtn')?.addEventListener('click', async () => {
-  await signOut();
-  journalInstance = null;
-  window.journal  = null;
-  showToast('Sesión cerrada', 'info');
+  try {
+    await signOut(); // onAuthChange → SIGNED_OUT → showAuth()
+  } catch (e) {
+    showToast('Error al cerrar sesión', 'error');
+  }
 });
 
 // ── BOOT ─────────────────────────────────────────────────────────────────
-onAuthChange(async (session) => {
-  if (session) { await bootApp(session); }
-  else         { showAuth(); }
+// onAuthChange reacciona solo a eventos DESPUÉS del arranque:
+// SIGNED_IN (login exitoso), SIGNED_OUT (logout), TOKEN_REFRESHED
+onAuthChange(async (event, session) => {
+  if (event === 'SIGNED_IN' && session) {
+    if (!journalInstance) await bootApp(session);
+  }
+  if (event === 'SIGNED_OUT') {
+    journalInstance = null;
+    window.journal  = null;
+    showAuth();
+  }
 });
 
-// Check inicial
+// Check inicial: restaura sesión desde localStorage sin parpadeos
 const session = await getSession();
 if (session) { await bootApp(session); }
 else         { showAuth(); }
