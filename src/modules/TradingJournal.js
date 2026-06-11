@@ -197,9 +197,11 @@ export class TradingJournal {
       const cap  = parseFloat(document.getElementById('pfCapital')?.value) || 0;
       if (!name) { showToast('El nombre es requerido', 'error'); return; }
       if (cap <= 0) { showToast('Ingresa el capital fondeado', 'error'); return; }
+      const currentCap = parseFloat(document.getElementById('pfCurrentCapital')?.value) || null;
       const acc = await this.createAccount({
         name, accountType: 'propfirm',
         initialCapital: cap,
+        currentCapital: currentCap ?? cap,
         brokerName: document.getElementById('pfFirm')?.value.trim(),
         phase: document.getElementById('pfPhase')?.value,
         maxDD:    parseFloat(document.getElementById('pfMaxDD')?.value)    || 10,
@@ -216,9 +218,9 @@ export class TradingJournal {
       const isProp = type === 'propfirm';
       document.getElementById('naPropfirmRules')?.classList.toggle('hidden', !isProp);
       document.getElementById('naPhaseRow')?.classList.toggle('hidden', !isProp);
+      document.getElementById('naCurrentCapRow')?.classList.toggle('hidden', !isProp);
       const brokerLabel = document.getElementById('naBrokerLabel');
       if (brokerLabel) brokerLabel.textContent = isProp ? 'Firma' : 'Broker';
-      // Estilo visual de las tarjetas
       document.querySelectorAll('.na-type-inner').forEach(el => {
         el.style.borderColor = 'var(--border)';
         el.style.background  = 'transparent';
@@ -231,7 +233,7 @@ export class TradingJournal {
     document.querySelectorAll('input[name="naType"]').forEach(r =>
       r.addEventListener('change', e => toggleNaType(e.target.value))
     );
-    toggleNaType('propfirm'); // estado inicial
+    toggleNaType('propfirm');
 
     document.getElementById('newAccountForm')?.addEventListener('submit', async e => {
       e.preventDefault();
@@ -239,8 +241,10 @@ export class TradingJournal {
       const cap  = parseFloat(document.getElementById('naCapital')?.value) || 0;
       if (!name || cap <= 0) { showToast('Completa los campos requeridos', 'error'); return; }
       const type = document.querySelector('input[name="naType"]:checked')?.value || 'propfirm';
+      const currentCap = parseFloat(document.getElementById('naCurrentCapital')?.value) || null;
       const acc = await this.createAccount({
         name, accountType: type, initialCapital: cap,
+        currentCapital: currentCap ?? cap,
         maxDD:       type === 'propfirm' ? (parseFloat(document.getElementById('naMaxDD')?.value)    || 10) : null,
         dailyDD:     type === 'propfirm' ? (parseFloat(document.getElementById('naDailyDD')?.value)  || 5)  : null,
         target:      type === 'propfirm' ? (parseFloat(document.getElementById('naTarget')?.value)   || 10) : null,
@@ -256,6 +260,7 @@ export class TradingJournal {
   async createAccount(data) {
     const acc = await saveAccount({
       name: data.name, initialCapital: data.initialCapital || 0,
+      currentCapital: data.currentCapital ?? data.initialCapital ?? 0,
       accountType: data.accountType || 'propfirm',
       maxDD: data.maxDD || null, dailyDD: data.dailyDD || null,
       target: data.target || null, riskPerTrade: data.riskPerTrade || 1,
@@ -274,9 +279,10 @@ export class TradingJournal {
 
   getAccountBalance(accountId) {
     const acc = this.getAccountById(accountId); if (!acc) return 0;
+    const base = acc.currentCapital ?? acc.initialCapital;
     return this.trades
       .filter(t => t.accountId === accountId && t.result !== 'OPEN')
-      .reduce((b, t) => b + calcPL(t, acc.initialCapital), acc.initialCapital);
+      .reduce((b, t) => b + calcPL(t, acc.initialCapital), base);
   }
 
   async deleteAccount(id) {

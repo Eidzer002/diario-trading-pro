@@ -4,35 +4,53 @@
  * para acceder al estado sin acoplamiento circular.
  */
 import { calcPL } from '../utils/calculations.js';
+import { renderPropFirmPanel } from './propfirm.js';
 
 export function renderDashboard(j) {
   const acc = j.getAccountById(j.activeAccount); if (!acc) return;
   const trades = j.trades.filter(t => t.accountId === j.activeAccount && t.result !== 'OPEN');
   const bal = j.getAccountBalance(j.activeAccount);
   const pnl = bal - acc.initialCapital;
-  const pct = pnl / acc.initialCapital * 100;
+  const pct = acc.initialCapital > 0 ? pnl / acc.initialCapital * 100 : 0;
 
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  set('dashAccountName', acc.name);
-  set('dashAccountType', `Capital inicial: $${acc.initialCapital.toLocaleString('en')}`);
+
+  // Info de cuenta
+  const typeBadge = acc.accountType === 'real'
+    ? '<span style="background:rgba(74,222,128,.15);color:#4ade80;border:1px solid rgba(74,222,128,.25);border-radius:4px;font-size:9px;padding:1px 6px;margin-left:6px">REAL</span>'
+    : '<span style="background:var(--accent-dim);color:#93c5fd;border:1px solid rgba(29,107,251,.25);border-radius:4px;font-size:9px;padding:1px 6px;margin-left:6px">PROPFIRM</span>';
+  const nameEl = document.getElementById('dashAccountName');
+  if (nameEl) nameEl.innerHTML = acc.name + typeBadge;
+  set('dashAccountType', `Fondeado: $${acc.initialCapital.toLocaleString('en')}${acc.currentCapital !== acc.initialCapital ? ` · Base: $${(acc.currentCapital ?? acc.initialCapital).toLocaleString('en')}` : ''}`);
   set('dashCurrentBalance', '$' + bal.toFixed(2));
+
   const pnlEl = document.getElementById('dashPnl');
   if (pnlEl) {
     pnlEl.textContent = `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`;
     pnlEl.style.color = pnl >= 0 ? '#C9A84C' : '#E84040';
-  pnlEl.className = pnl >= 0 ? 'phosphor-win font-data' : 'phosphor-loss font-data';
+    pnlEl.className = pnl >= 0 ? 'phosphor-win font-data' : 'phosphor-loss font-data';
   }
 
-  if (acc.maxDD || acc.target) {
-    document.getElementById('ddSection')?.classList.remove('hidden');
-    const ddP = Math.max(0, -pct);
-    const ddW = Math.min(100, (ddP / (acc.maxDD || 8)) * 100);
-    const ddC = ddP < (acc.maxDD || 8) * 0.5 ? '#4ADE80' : ddP < (acc.maxDD || 8) * 0.8 ? '#f59e0b' : 'var(--loss-red)';
-    const ddL = document.getElementById('ddLabel'); if (ddL) { ddL.textContent = ddP.toFixed(2) + '%'; ddL.style.color = ddC; }
-    const ddF = document.getElementById('ddFill'); if (ddF) { ddF.style.width = ddW + '%'; ddF.style.background = ddC; }
-    const tP = Math.max(0, pct); const tW = Math.min(100, (tP / (acc.target || 10)) * 100);
-    set('targetLabel', tP.toFixed(2) + '% / ' + (acc.target || 10) + '%');
-    const tF = document.getElementById('targetFill'); if (tF) tF.style.width = tW + '%';
+  // Panel PropFirm — solo para cuentas de fondeo
+  const pfPanel = document.getElementById('propfirmPanel');
+  if (acc.accountType === 'propfirm') {
+    renderPropFirmPanel(acc, j.trades, pfPanel);
+    // Ocultar la barra DD clásica (el panel PropFirm ya la incluye mejorada)
+    document.getElementById('ddSection')?.classList.add('hidden');
+  } else {
+    if (pfPanel) pfPanel.classList.add('hidden');
+    // Mostrar barra DD clásica para cuentas reales si tiene configuración
+    if (acc.maxDD || acc.target) {
+      document.getElementById('ddSection')?.classList.remove('hidden');
+      const ddP = Math.max(0, -pct);
+      const ddW = Math.min(100, (ddP / (acc.maxDD || 8)) * 100);
+      const ddC = ddP < (acc.maxDD || 8) * 0.5 ? '#4ADE80' : ddP < (acc.maxDD || 8) * 0.8 ? '#f59e0b' : 'var(--loss-red)';
+      const ddL = document.getElementById('ddLabel'); if (ddL) { ddL.textContent = ddP.toFixed(2) + '%'; ddL.style.color = ddC; }
+      const ddF = document.getElementById('ddFill'); if (ddF) { ddF.style.width = ddW + '%'; ddF.style.background = ddC; }
+      const tP = Math.max(0, pct); const tW = Math.min(100, (tP / (acc.target || 10)) * 100);
+      set('targetLabel', tP.toFixed(2) + '% / ' + (acc.target || 10) + '%');
+      const tF = document.getElementById('targetFill'); if (tF) tF.style.width = tW + '%';
+    }
   }
 
   const wins = trades.filter(t => t.result === 'WIN');

@@ -51,6 +51,7 @@ function tradeToRow(t, userId) {
 function rowToAccount(r) {
   return {
     id: r.id, name: r.name, initialCapital: r.initial_capital,
+    currentCapital: r.current_capital ?? r.initial_capital,
     maxDD: r.max_dd, dailyDD: r.daily_dd, target: r.target,
     riskPerTrade: r.risk_per_trade, color: r.color,
     accountType: r.account_type || 'propfirm',
@@ -62,6 +63,7 @@ function rowToAccount(r) {
 function accountToRow(a, userId) {
   return {
     user_id: userId, name: a.name, initial_capital: a.initialCapital,
+    current_capital: a.currentCapital ?? a.initialCapital,
     max_dd: a.maxDD || null, daily_dd: a.dailyDD || null,
     target: a.target || null, risk_per_trade: a.riskPerTrade || 1,
     color: a.color || '#3b82f6',
