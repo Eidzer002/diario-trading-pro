@@ -19,14 +19,15 @@ export function renderDashboard(j) {
   const pnlEl = document.getElementById('dashPnl');
   if (pnlEl) {
     pnlEl.textContent = `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`;
-    pnlEl.style.color = pnl >= 0 ? '#22c55e' : '#ef4444';
+    pnlEl.style.color = pnl >= 0 ? '#C9A84C' : '#E84040';
+  pnlEl.className = pnl >= 0 ? 'phosphor-win font-data' : 'phosphor-loss font-data';
   }
 
   if (acc.maxDD || acc.target) {
     document.getElementById('ddSection')?.classList.remove('hidden');
     const ddP = Math.max(0, -pct);
     const ddW = Math.min(100, (ddP / (acc.maxDD || 8)) * 100);
-    const ddC = ddP < (acc.maxDD || 8) * 0.5 ? '#22c55e' : ddP < (acc.maxDD || 8) * 0.8 ? '#f59e0b' : '#ef4444';
+    const ddC = ddP < (acc.maxDD || 8) * 0.5 ? '#4ADE80' : ddP < (acc.maxDD || 8) * 0.8 ? '#f59e0b' : 'var(--loss-red)';
     const ddL = document.getElementById('ddLabel'); if (ddL) { ddL.textContent = ddP.toFixed(2) + '%'; ddL.style.color = ddC; }
     const ddF = document.getElementById('ddFill'); if (ddF) { ddF.style.width = ddW + '%'; ddF.style.background = ddC; }
     const tP = Math.max(0, pct); const tW = Math.min(100, (tP / (acc.target || 10)) * 100);
@@ -52,7 +53,7 @@ export function renderDashboard(j) {
 
   const noData = ['resultsChart', 'capitalChart', 'setupChart', 'pairChart', 'ddHistChart', 'pnlDayChart'];
   if (!trades.length) {
-    noData.forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '<p class="text-slate-500 text-xs text-center py-8">Sin datos</p>'; });
+    noData.forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '<p class="text-xs text-center py-8">Sin datos</p>'; });
     renderAdvancedMetrics(j, [], acc); renderCalendar(j); return;
   }
 
@@ -69,7 +70,7 @@ function chartResults(trades) {
   const b = trades.filter(t => t.result === 'BE').length;
   if (!(w + l + b)) return;
   Plotly.newPlot('resultsChart',
-    [{ values: [w, l, b], labels: ['WIN', 'LOSS', 'BE'], type: 'pie', marker: { colors: ['#22c55e', '#ef4444', '#fb923c'] }, textinfo: 'label+percent', textposition: 'outside' }],
+    [{ values: [w, l, b], labels: ['WIN', 'LOSS', 'BE'], type: 'pie', marker: { colors: ['#C9A84C','#E84040','#64748B'] }, textinfo: 'label+percent', textposition: 'outside' }],
     { showlegend: false, margin: { t: 10, b: 10, l: 10, r: 10 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { color: '#94a3b8' } },
     { displayModeBar: false, responsive: true });
 }
@@ -78,7 +79,7 @@ function chartCapital(j, trades, acc) {
   const sorted = [...trades].reverse(); const caps = [acc.initialCapital]; let c = acc.initialCapital; const labels = ['Inicio'];
   sorted.forEach(t => { c += calcPL(t, acc.initialCapital); caps.push(c); labels.push(t.date || ''); });
   Plotly.newPlot('capitalChart',
-    [{ x: labels, y: caps, type: 'scatter', mode: 'lines', line: { color: '#3b82f6', width: 2 }, fill: 'tozeroy', fillcolor: 'rgba(59,130,246,0.1)' }],
+    [{ x: labels, y: caps, type: 'scatter', mode: 'lines', line: { color: '#C9A84C', width: 2 }, fill: 'tozeroy', fillcolor: 'rgba(29,107,251,0.12)' }],
     { xaxis: { showticklabels: false, color: '#94a3b8' }, yaxis: { color: '#94a3b8' }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { color: '#94a3b8' }, margin: { t: 10, b: 20, l: 55, r: 10 } },
     { displayModeBar: false, responsive: true });
 }
@@ -88,7 +89,7 @@ function chartSetups(j, trades) {
   const keys = Object.keys(stats).sort((a, b) => stats[b].tot - stats[a].tot).slice(0, 8);
   if (!keys.length) return;
   Plotly.newPlot('setupChart',
-    [{ x: keys, y: keys.map(k => (stats[k].w / stats[k].tot * 100).toFixed(1)), type: 'bar', marker: { color: keys.map(k => stats[k].w / stats[k].tot >= 0.5 ? '#22c55e' : '#ef4444') }, text: keys.map(k => `${stats[k].tot}t`), textposition: 'outside' }],
+    [{ x: keys, y: keys.map(k => (stats[k].w / stats[k].tot * 100).toFixed(1)), type: 'bar', marker: { color: keys.map(k => stats[k].w / stats[k].tot >= 0.5 ? '#C9A84C' : '#E84040') }, text: keys.map(k => `${stats[k].tot}t`), textposition: 'outside' }],
     { xaxis: { color: '#94a3b8', tickangle: -30 }, yaxis: { title: 'WR%', color: '#94a3b8' }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { color: '#94a3b8' }, margin: { t: 20, b: 70, l: 45, r: 10 } },
     { displayModeBar: false, responsive: true });
 }
@@ -97,7 +98,7 @@ function chartPairs(j, trades, acc) {
   const stats = {}; trades.forEach(t => { const k = t.pair || '?'; if (!stats[k]) stats[k] = { w: 0, tot: 0, pl: 0 }; stats[k].tot++; if (t.result === 'WIN') stats[k].w++; stats[k].pl += calcPL(t, acc.initialCapital); });
   const keys = Object.keys(stats); if (!keys.length) return;
   Plotly.newPlot('pairChart',
-    [{ x: keys, y: keys.map(k => stats[k].pl.toFixed(2)), type: 'bar', marker: { color: keys.map(k => stats[k].pl >= 0 ? '#22c55e' : '#ef4444') }, text: keys.map(k => `WR ${(stats[k].w / stats[k].tot * 100).toFixed(0)}%`), textposition: 'outside' }],
+    [{ x: keys, y: keys.map(k => stats[k].pl.toFixed(2)), type: 'bar', marker: { color: keys.map(k => stats[k].pl >= 0 ? '#C9A84C' : '#E84040') }, text: keys.map(k => `WR ${(stats[k].w / stats[k].tot * 100).toFixed(0)}%`), textposition: 'outside' }],
     { xaxis: { color: '#94a3b8' }, yaxis: { title: 'P&L $', color: '#94a3b8' }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { color: '#94a3b8' }, margin: { t: 20, b: 40, l: 55, r: 10 } },
     { displayModeBar: false, responsive: true });
 }
@@ -107,7 +108,7 @@ function chartDDHistory(j, trades, acc) {
   const sorted = [...trades].reverse(); let cap = acc.initialCapital, peak = acc.initialCapital; const dds = [], labels = [];
   sorted.forEach(t => { cap += calcPL(t, acc.initialCapital); if (cap > peak) peak = cap; dds.push(((peak - cap) / peak * 100).toFixed(2)); labels.push(t.date || ''); });
   Plotly.newPlot('ddHistChart',
-    [{ x: labels, y: dds, type: 'scatter', mode: 'lines', fill: 'tozeroy', line: { color: '#ef4444', width: 1.5 }, fillcolor: 'rgba(239,68,68,0.1)' }],
+    [{ x: labels, y: dds, type: 'scatter', mode: 'lines', fill: 'tozeroy', line: { color: 'var(--loss-red)', width: 1.5 }, fillcolor: 'rgba(232,64,64,0.1)' }],
     { xaxis: { showticklabels: false, color: '#94a3b8' }, yaxis: { title: 'DD%', color: '#94a3b8', autorange: 'reversed' }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { color: '#94a3b8' }, margin: { t: 10, b: 20, l: 45, r: 10 } },
     { displayModeBar: false, responsive: true });
 }
@@ -117,7 +118,7 @@ function chartPnLByDay(j, trades, acc) {
   trades.forEach(t => { const dn = new Date(t.date + 'T12:00:00').getDay(); if (!isNaN(dn)) dayPL[days[dn]] += calcPL(t, acc.initialCapital); });
   const k = days.filter(d => dayPL[d] !== 0); if (!k.length) return;
   Plotly.newPlot('pnlDayChart',
-    [{ x: k, y: k.map(d => dayPL[d].toFixed(2)), type: 'bar', marker: { color: k.map(d => dayPL[d] >= 0 ? '#22c55e' : '#ef4444') } }],
+    [{ x: k, y: k.map(d => dayPL[d].toFixed(2)), type: 'bar', marker: { color: k.map(d => dayPL[d] >= 0 ? '#C9A84C' : '#E84040') } }],
     { xaxis: { color: '#94a3b8' }, yaxis: { title: 'P&L $', color: '#94a3b8' }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { color: '#94a3b8' }, margin: { t: 10, b: 40, l: 55, r: 10 } },
     { displayModeBar: false, responsive: true });
 }
@@ -143,12 +144,12 @@ export function renderAdvancedMetrics(j, trades, acc) {
   const totalPL = trades.reduce((s, t) => s + calcPL(t, acc.initialCapital), 0);
   const exp = trades.length ? totalPL / trades.length : 0;
   const expEl = document.getElementById('dashExpectancy');
-  if (expEl) { expEl.textContent = (exp >= 0 ? '+' : '') + '$' + exp.toFixed(2); expEl.style.color = exp >= 0 ? '#4ade80' : '#f87171'; }
+  if (expEl) { expEl.textContent = (exp >= 0 ? '+' : '') + '$' + exp.toFixed(2); expEl.style.color = exp >= 0 ? '#C9A84C' : '#E84040'; }
   const mMap = {}; trades.forEach(t => { const k = (t.date || '').slice(0, 7); if (!mMap[k]) mMap[k] = 0; mMap[k] += calcPL(t, acc.initialCapital); });
   const mVals = Object.values(mMap); let sharpe = 0;
   if (mVals.length > 1) { const mean = mVals.reduce((a, b) => a + b, 0) / mVals.length; const std = Math.sqrt(mVals.reduce((s, v) => s + (v - mean) ** 2, 0) / mVals.length); sharpe = std > 0 ? (mean / std * Math.sqrt(12)) : 0; }
   const shEl = document.getElementById('dashSharpe');
-  if (shEl) { shEl.textContent = sharpe.toFixed(2); shEl.style.color = sharpe >= 1 ? '#4ade80' : sharpe >= 0.5 ? '#fb923c' : '#f87171'; }
+  if (shEl) { shEl.textContent = sharpe.toFixed(2); shEl.style.color = sharpe >= 1 ? '#4ADE80' : sharpe >= 0.5 ? '#fb923c' : 'var(--loss-red)'; }
 }
 
 export function renderMultiAccountTabs(j) {
@@ -163,13 +164,13 @@ export function renderMultiAccountTabs(j) {
       <div class="flex items-center gap-2 mb-2">
         <div class="w-2 h-2 rounded-full flex-shrink-0" style="background:${a.color}"></div>
         <span class="font-semibold text-sm text-white flex-1">${a.name}</span>
-        <span class="font-bold text-sm" style="color:${pnl >= 0 ? '#4ade80' : '#f87171'}">${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%</span>
+        <span class="font-bold text-sm" style="color:${pnl >= 0 ? '#C9A84C' : '#E84040'}">${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%</span>
       </div>
       <div class="risk-row"><span class="risk-k">Balance</span><span class="text-white font-semibold">$${bal.toFixed(2)}</span></div>
-      <div class="risk-row"><span class="risk-k">P&L</span><span style="color:${pnl >= 0 ? '#4ade80' : '#f87171'}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</span></div>
+      <div class="risk-row"><span class="risk-k">P&L</span><span style="color:${pnl >= 0 ? '#C9A84C' : '#E84040'}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</span></div>
       <div class="risk-row"><span class="risk-k">Win Rate</span><span class="text-white">${wr.toFixed(1)}% (${t.length} ops)</span></div>
-      ${a.maxDD ? `<div class="risk-row"><span class="risk-k">DD ${ddP.toFixed(2)}% / ${a.maxDD}% máx</span><span style="color:${ddP < a.maxDD * 0.5 ? '#4ade80' : ddP < a.maxDD * 0.8 ? '#fb923c' : '#f87171'}">${ddP < a.maxDD * 0.5 ? 'OK' : ddP < a.maxDD * 0.8 ? '⚠ Atención' : '🔴 Peligro'}</span></div>
-      <div class="progress-bar mt-1 mb-1"><div class="progress-fill" style="width:${ddW}%;background:${ddP < a.maxDD * 0.5 ? '#22c55e' : ddP < a.maxDD * 0.8 ? '#f59e0b' : '#ef4444'}"></div></div>` : ''}
+      ${a.maxDD ? `<div class="risk-row"><span class="risk-k">DD ${ddP.toFixed(2)}% / ${a.maxDD}% máx</span><span style="color:${ddP < a.maxDD * 0.5 ? '#4ADE80' : ddP < a.maxDD * 0.8 ? '#fb923c' : 'var(--loss-red)'}">${ddP < a.maxDD * 0.5 ? 'OK' : ddP < a.maxDD * 0.8 ? '⚠ Atención' : '🔴 Peligro'}</span></div>
+      <div class="progress-bar mt-1 mb-1"><div class="progress-fill" style="width:${ddW}%;background:${ddP < a.maxDD * 0.5 ? '#4ADE80' : ddP < a.maxDD * 0.8 ? '#f59e0b' : 'var(--loss-red)'}"></div></div>` : ''}
     </div>`;
   }).join('') || '<p class="text-xs text-slate-500">Sin cuentas</p>';
 }
@@ -206,7 +207,7 @@ export function renderCalendar(j) {
   const totalL  = Object.values(byDay).reduce((s, d) => s + d.l, 0);
   const smry = document.getElementById('calMonthSummary');
   if (smry) smry.innerHTML = `
-    <div class="bg-green-500/10 rounded p-2"><div class="text-green-400 font-bold">${totalW}</div><div class="text-slate-500 text-xs">Wins</div></div>
-    <div class="bg-red-500/10 rounded p-2"><div class="text-red-400 font-bold">${totalL}</div><div class="text-slate-500 text-xs">Losses</div></div>
-    <div class="rounded p-2" style="background:${totalPL >= 0 ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)'}"><div class="font-bold" style="color:${totalPL >= 0 ? '#4ade80' : '#f87171'}">${totalPL >= 0 ? '+' : ''}$${totalPL.toFixed(0)}</div><div class="text-slate-500 text-xs">P&L Mes</div></div>`;
+    <div class="bg-green-500/10 rounded p-2"><div class="text-green-400 font-bold">${totalW}</div><div class="text-xs">Wins</div></div>
+    <div class="bg-red-500/10 rounded p-2"><div class="text-red-400 font-bold">${totalL}</div><div class="text-xs">Losses</div></div>
+    <div class="rounded p-2" style="background:${totalPL >= 0 ? 'rgba(201,168,76,0.1)' : 'rgba(232,64,64,0.1)'}"><div class="font-bold" style="color:${totalPL >= 0 ? '#C9A84C' : '#E84040'}">${totalPL >= 0 ? '+' : ''}$${totalPL.toFixed(0)}</div><div class="text-xs">P&L Mes</div></div>`;
 }

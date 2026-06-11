@@ -12,7 +12,7 @@
 <body class="text-slate-300">
 
 <!-- PANTALLA DE AUTH -->
-<div id="authScreen" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%)">
+<div id="authScreen" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:var(--bg-void)">
   <div class="w-full max-w-sm px-6">
     <div class="text-center mb-8">
       <div class="text-5xl mb-3">📊</div>
@@ -96,7 +96,7 @@
     <div class="modal-content">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold">Nueva Cuenta</h3>
-            <button onclick="closeModal('newAccountModal')" class="text-slate-400 hover:text-white p-2"><i class="fas fa-times"></i></button>
+            <button onclick="closeModal('newAccountModal')" class="text-[var(--text-secondary)] hover:text-white p-2"><i class="fas fa-times"></i></button>
         </div>
         <form id="newAccountForm" class="space-y-4" novalidate>
             <div>
@@ -148,7 +148,7 @@
     <div class="modal-content">
         <div class="flex items-center justify-between mb-4">
             <h3 id="modalTradeTitle" class="text-lg font-semibold">Nueva Operación</h3>
-            <button onclick="journal.closeTradeModal()" class="text-slate-400 hover:text-white p-2"><i class="fas fa-times text-lg"></i></button>
+            <button onclick="journal.closeTradeModal()" class="text-[var(--text-secondary)] hover:text-white p-2"><i class="fas fa-times text-lg"></i></button>
         </div>
         <form id="tradeForm" class="space-y-4" novalidate>
 
@@ -295,7 +295,7 @@
                 </div>
                 <!-- Auto R:R display -->
                 <div id="priceRRDisplay" class="hidden text-xs rounded p-2 flex items-center justify-between" style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25)">
-                    <span class="text-slate-400"><i class="fas fa-magic mr-1"></i>R:R calculado automáticamente</span>
+                    <span class="text-[var(--text-secondary)]"><i class="fas fa-magic mr-1"></i>R:R calculado automáticamente</span>
                     <span id="priceRRValue" class="font-bold text-blue-300">-</span>
                 </div>
                 <div id="priceSLDistDisplay" class="hidden flex gap-4 text-xs text-slate-500 px-1">
@@ -442,7 +442,7 @@
                     <input type="number" id="tradeClosePrice" class="form-input text-sm" step="any" placeholder="0.00">
                 </div>
                 <div id="rrRealAutoDisplay" class="hidden text-xs rounded p-2 flex items-center justify-between" style="background:rgba(71,85,105,0.3);border:1px solid rgba(71,85,105,0.4)">
-                    <span class="text-slate-400"><i class="fas fa-magic mr-1"></i>R:R real calculado</span>
+                    <span class="text-[var(--text-secondary)]"><i class="fas fa-magic mr-1"></i>R:R real calculado</span>
                     <span id="rrRealAutoValue" class="font-bold">-</span>
                 </div>
                 <div id="durationDisplay" class="hidden text-xs text-slate-500 px-1">
@@ -484,7 +484,7 @@
         </div>
         <div class="flex items-center gap-2">
             <select id="accountSelector" class="form-select text-xs py-1 px-2" style="min-width:100px"></select>
-            <button id="logoutBtn" title="Cerrar sesión" class="text-slate-400 hover:text-red-400 p-1 text-xs"><i class="fas fa-sign-out-alt"></i></button>
+            <button id="logoutBtn" title="Cerrar sesión" class="text-[var(--text-secondary)] hover:text-red-400 p-1 text-xs"><i class="fas fa-sign-out-alt"></i></button>
         </div>
     </div>
 </header>
@@ -496,29 +496,29 @@
     <div id="accountSummaryCard" class="glass-effect p-4 mb-4">
         <div class="flex items-center justify-between mb-3">
             <div>
-                <div id="dashAccountName" class="font-bold text-white text-sm">-</div>
-                <div id="dashAccountType" class="text-xs text-slate-400">-</div>
+                <div id="dashAccountName" style="font-family:var(--font-ui);font-size:15px;font-weight:700;color:var(--text-primary)">-</div>
+                <div id="dashAccountType" class="text-label mt-0.5">-</div>
             </div>
             <div class="text-right">
-                <div id="dashCurrentBalance" class="text-xl font-bold text-white">$0.00</div>
-                <div id="dashPnl" class="text-xs font-semibold">+$0.00 (0.00%)</div>
+                <div id="dashCurrentBalance" style="font-family:var(--font-data);font-size:1.5rem;font-weight:700;color:var(--win-gold);text-shadow:0 0 20px rgba(201,168,76,0.35)">$0.00</div>
+                <div id="dashPnl" style="font-family:var(--font-data);font-size:12px;font-weight:600">+$0.00 (0.00%)</div>
             </div>
         </div>
         <!-- DD Progress -->
         <div id="ddSection" class="hidden">
             <div class="flex justify-between text-xs mb-1">
-                <span class="text-slate-400">DD actual</span>
+                <span style="color:var(--text-secondary)">DD actual</span>
                 <span id="ddLabel" class="font-semibold">0.00%</span>
             </div>
             <div class="progress-bar mb-2">
-                <div id="ddFill" class="progress-fill" style="width:0%;background:#22c55e"></div>
+                <div id="ddFill" class="progress-fill" style="width:0%;background:var(--win-gold)"></div>
             </div>
             <div class="flex justify-between text-xs mb-1">
-                <span class="text-slate-400">Objetivo</span>
-                <span id="targetLabel" class="font-semibold text-green-400">0.00%</span>
+                <span style="color:var(--text-secondary)">Objetivo</span>
+                <span id="targetLabel" style="font-weight:600;color:var(--win-gold)">0.00%</span>
             </div>
             <div class="progress-bar">
-                <div id="targetFill" class="progress-fill" style="width:0%;background:#22c55e"></div>
+                <div id="targetFill" class="progress-fill" style="width:0%;background:var(--accent-blue)"></div>
             </div>
         </div>
     </div>
@@ -526,22 +526,22 @@
     <!-- KPIs -->
     <div class="metric-grid">
         <div class="metric-card-mobile">
-            <div class="icon bg-green-500/20"><i class="fas fa-percentage text-green-400"></i></div>
+            <div class="icon"><i class="fas fa-percentage"></i></div>
             <div class="value" id="dashWinRate">0%</div>
-            <div class="label">Win Rate Real</div>
-            <div class="text-xs text-slate-400 mt-1"><span id="dashTotalTrades">0</span> ops</div>
+            <div class="label">Win Rate</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px"><span id="dashTotalTrades">0</span> ops</div>
         </div>
         <div class="metric-card-mobile">
-            <div class="icon bg-blue-500/20"><i class="fas fa-balance-scale text-blue-400"></i></div>
+            <div class="icon"><i class="fas fa-balance-scale"></i></div>
             <div class="value" id="dashPF">0.00</div>
             <div class="label">Profit Factor</div>
-            <div class="text-xs text-slate-400 mt-1">Ganancias/Pérdidas</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Ganancias/Pérdidas</div>
         </div>
         <div class="metric-card-mobile">
-            <div class="icon bg-yellow-500/20"><i class="fas fa-chart-line text-yellow-400"></i></div>
+            <div class="icon"><i class="fas fa-chart-line"></i></div>
             <div class="value" id="dashAvgRR">0.00</div>
             <div class="label">R:R Promedio</div>
-            <div class="text-xs text-slate-400 mt-1">Plan: <span id="dashPlannedRR">0.00</span></div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Plan: <span id="dashPlannedRR">0.00</span></div>
         </div>
         <div class="metric-card-mobile">
             <div class="icon bg-red-500/20"><i class="fas fa-arrow-down text-red-400"></i></div>
@@ -975,7 +975,7 @@
 <!-- ===== SECCIÓN NOTAS ===== -->
 <section id="section-notas" class="spa-section px-4 pt-4 pb-24">
     <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-bold text-white"><i class="fas fa-book-open mr-2 text-purple-400"></i>Notas de Sesión</h2>
+        <h2 class="section-header mt-0"><i class="fas fa-book-open mr-2 text-purple-400"></i>Notas de Sesión</h2>
         <button id="addDailyNoteBtn" class="btn-primary text-xs px-3 py-1.5"><i class="fas fa-plus mr-1"></i>Nueva nota</button>
     </div>
 
@@ -1032,7 +1032,7 @@
     <div class="glass-effect p-4 mx-4 w-full max-w-sm" style="border:1px solid rgba(255,255,255,0.1);border-radius:16px;max-height:90vh;overflow-y:auto">
         <div class="flex items-center justify-between mb-4">
             <h3 class="font-bold text-white"><i class="fas fa-clipboard-check mr-2 text-green-400"></i>Pre-trade Checklist</h3>
-            <button id="checklistModalClose" class="text-slate-400 hover:text-white p-1"><i class="fas fa-times"></i></button>
+            <button id="checklistModalClose" class="text-[var(--text-secondary)] hover:text-white p-1"><i class="fas fa-times"></i></button>
         </div>
         <p class="text-xs text-slate-400 mb-3">Verifica cada condición antes de confirmar la operación.</p>
         <div id="checklistModalItems" class="space-y-2 mb-4"></div>

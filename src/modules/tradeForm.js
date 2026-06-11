@@ -358,51 +358,72 @@ export function renderTrades(j) {
   list.innerHTML = j.filteredTrades.map(t => {
     const acc = j.getAccountById(t.accountId);
     const pl  = acc ? calcPL(t, acc.initialCapital) : 0;
-    const plColor = t.result === 'WIN' ? '#4ade80' : t.result === 'LOSS' ? '#f87171' : '#fb923c';
-    const resClass = t.result === 'WIN' ? 'result-win' : t.result === 'LOSS' ? 'result-loss' : 'result-be';
-    return `<div class="glass-effect p-3 mb-2">
+    const isWin  = t.result === 'WIN';
+    const isLoss = t.result === 'LOSS';
+    const borderClass = isWin ? 'trade-card-win' : isLoss ? 'trade-card-loss' : t.result === 'OPEN' ? 'trade-card-open' : 'trade-card-be';
+    const resClass    = isWin ? 'result-win'     : isLoss ? 'result-loss'     : 'result-be';
+    const plClass     = isWin ? 'phosphor-win'   : isLoss ? 'phosphor-loss'   : '';
+    const dirClass    = (t.direction === 'LONG' || t.direction === 'BUY') ? 'dir-long' : 'dir-short';
+    const plStr = t.result !== 'OPEN'
+      ? `${pl >= 0 ? '+' : ''}$${pl.toFixed(2)}`
+      : '<span style="color:var(--accent-blue)">OPEN</span>';
+
+    return `
+    <div class="glass-effect ${borderClass} p-3 mb-2">
+      <!-- Header row -->
       <div class="flex items-center justify-between mb-2">
-        <div class="flex items-center gap-2">
-          <span class="font-bold text-white">${t.pair || '-'}</span>
-          <span class="text-xs px-2 py-0.5 rounded ${t.direction === 'LONG' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}">${t.direction || '-'}</span>
-          <span class="${resClass} text-xs font-bold">${t.result || '-'}</span>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span style="font-family:var(--font-ui);font-size:15px;font-weight:700;color:var(--text-primary)">${t.pair || '-'}</span>
+          <span class="${dirClass}">${t.direction || '-'}</span>
+          <span class="${resClass}">${t.result || '-'}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="font-bold text-sm" style="color:${plColor}">${t.result !== 'OPEN' ? (pl >= 0 ? '+' : '') + '$' + pl.toFixed(2) : 'OPEN'}</span>
-          <button onclick="window.journal.openTradeModal('${t.id}')" class="text-slate-400 hover:text-blue-400 p-1"><i class="fas fa-edit text-xs"></i></button>
-          <button onclick="window.journal.deleteTrade('${t.id}')" class="text-slate-400 hover:text-red-400 p-1"><i class="fas fa-trash text-xs"></i></button>
+          <span class="font-data font-bold text-sm ${plClass}">${plStr}</span>
+          <button onclick="window.journal.openTradeModal('${t.id}')" style="color:var(--text-muted);padding:4px" class="hover:text-blue-400"><i class="fas fa-edit text-xs"></i></button>
+          <button onclick="window.journal.deleteTrade('${t.id}')" style="color:var(--text-muted);padding:4px" class="hover:text-red-400"><i class="fas fa-trash text-xs"></i></button>
         </div>
       </div>
-      <div class="flex items-center gap-2 text-xs text-slate-400 mb-2">
-        <span><i class="fas fa-calendar mr-1"></i>${t.date || ''} ${t.time || ''}</span>
-        ${t.htfTimeframe ? `<span class="text-slate-500">${t.htfTimeframe}<i class="fas fa-arrow-right mx-0.5 text-slate-600 text-xs"></i>${t.timeframe || ''}</span>` : `<span>${t.timeframe || ''}</span>`}
-        ${acc ? `<span class="account-badge" style="background:${acc.color}22;color:${acc.color}">${acc.name}</span>` : ''}
+      <!-- Meta row -->
+      <div class="flex items-center gap-2 flex-wrap mb-2" style="font-family:var(--font-data);font-size:11px;color:var(--text-muted)">
+        <span><i class="fas fa-calendar-alt mr-1"></i>${t.date || ''} ${t.time ? t.time.substring(0,5) : ''}</span>
+        ${t.htfTimeframe
+          ? `<span style="color:var(--text-secondary)">${t.htfTimeframe}<i class="fas fa-long-arrow-alt-right mx-1" style="font-size:9px;color:var(--text-muted)"></i>${t.timeframe || ''}</span>`
+          : t.timeframe ? `<span>${t.timeframe}</span>` : ''}
+        ${t.session ? `<span style="background:rgba(124,58,237,0.15);color:#c4b5fd;border:1px solid rgba(124,58,237,0.25);border-radius:4px;padding:1px 7px">${t.session}</span>` : ''}
+        ${acc ? `<span class="account-badge" style="background:${acc.color}20;color:${acc.color};border:1px solid ${acc.color}40">${acc.name}</span>` : ''}
       </div>
-      <div class="grid grid-cols-3 gap-2 text-xs mb-2">
-        <div><span class="text-slate-500">Setup:</span><div>${t.poi || '-'}</div></div>
-        <div><span class="text-slate-500">Fib:</span><div>${t.fibLevel ? t.fibLevel + '%' : '-'}</div></div>
-        <div><span class="text-slate-500">R:R:</span><div>1:${t.rrPlanned || '-'}→${t.rrReal || '-'}</div></div>
-        <div><span class="text-slate-500">Riesgo:</span><div>${t.riskValue || '-'}${t.riskType === 'percentage' ? '%' : '$'}</div></div>
-        <div><span class="text-slate-500">Mental:</span><div>${t.mentalState || '-'}</div></div>
-        <div><span class="text-slate-500">Reglas:</span><div class="${t.rulesFollowed === 'No' ? 'text-red-400' : t.rulesFollowed === 'Parcial' ? 'text-yellow-400' : ''}">${t.rulesFollowed || 'Sí'}</div></div>
+      <!-- Stats grid -->
+      <div class="grid grid-cols-3 gap-x-3 gap-y-1 mb-2" style="font-size:11px">
+        <div><span style="color:var(--text-muted)">Setup </span><span style="color:var(--text-secondary);font-family:var(--font-data)">${t.poi || '-'}</span></div>
+        <div><span style="color:var(--text-muted)">Fib </span><span style="color:var(--text-secondary);font-family:var(--font-data)">${t.fibLevel ? t.fibLevel + '%' : '-'}</span></div>
+        <div><span style="color:var(--text-muted)">R:R </span><span style="font-family:var(--font-data);color:var(--text-primary)">1:${t.rrPlanned || '-'}→${t.rrReal || '-'}</span></div>
+        <div><span style="color:var(--text-muted)">Riesgo </span><span style="font-family:var(--font-data);color:var(--text-secondary)">${t.riskValue || '-'}${t.riskType === 'percentage' ? '%' : '$'}</span></div>
+        <div><span style="color:var(--text-muted)">Mental </span><span style="color:var(--text-secondary)">${t.mentalState || '-'}</span></div>
+        <div><span style="color:var(--text-muted)">Reglas </span><span style="font-family:var(--font-data);color:${t.rulesFollowed === 'No' ? 'var(--loss-red)' : t.rulesFollowed === 'Parcial' ? 'var(--win-gold)' : '#4ade80'}">${t.rulesFollowed || 'Sí'}</span></div>
       </div>
-      ${(t.entryPrice || t.slPrice || t.tpPrice) ? `<div class="flex flex-wrap gap-x-3 gap-y-1 text-xs mb-2 px-1 py-1 rounded" style="background:rgba(30,41,59,0.6)">
-        ${t.entryPrice ? `<span class="text-slate-500">E: <span class="text-slate-200 font-medium">${t.entryPrice}</span></span>` : ''}
-        ${t.slPrice    ? `<span class="text-slate-500">SL: <span class="text-red-400 font-medium">${t.slPrice}</span></span>` : ''}
-        ${t.tpPrice    ? `<span class="text-slate-500">TP: <span class="text-green-400 font-medium">${t.tpPrice}</span></span>` : ''}
-        ${t.closePrice ? `<span class="text-slate-500">C: <span class="text-blue-300 font-medium">${t.closePrice}</span></span>` : ''}
-        ${t.duration   ? `<span class="text-slate-500 ml-auto"><i class="fas fa-clock text-blue-400/70 mr-1"></i>${t.duration >= 60 ? Math.floor(t.duration / 60) + 'h ' + (t.duration % 60) + 'm' : t.duration + 'm'}</span>` : ''}
+      <!-- Price levels -->
+      ${(t.entryPrice || t.slPrice || t.tpPrice) ? `
+      <div class="flex flex-wrap gap-x-3 gap-y-1 mb-2 px-2 py-1.5" style="background:var(--bg-elevated);border-radius:6px;font-family:var(--font-data);font-size:11px">
+        ${t.entryPrice ? `<span style="color:var(--text-muted)">E <span style="color:var(--text-primary)">${t.entryPrice}</span></span>` : ''}
+        ${t.slPrice    ? `<span style="color:var(--text-muted)">SL <span style="color:var(--loss-red)">${t.slPrice}</span></span>` : ''}
+        ${t.tpPrice    ? `<span style="color:var(--text-muted)">TP <span style="color:#4ade80">${t.tpPrice}</span></span>` : ''}
+        ${t.closePrice ? `<span style="color:var(--text-muted)">C <span style="color:#93c5fd">${t.closePrice}</span></span>` : ''}
+        ${t.duration   ? `<span style="color:var(--text-muted);margin-left:auto"><i class="fas fa-clock mr-1" style="color:var(--accent-blue);opacity:0.7"></i>${t.duration >= 60 ? Math.floor(t.duration/60)+'h '+(t.duration%60)+'m' : t.duration+'m'}</span>` : ''}
       </div>` : ''}
-      ${t.lossCause ? `<div class="text-xs text-red-400 mb-2"><i class="fas fa-exclamation-circle mr-1"></i>${t.lossCause}</div>` : ''}
+      <!-- Loss cause -->
+      ${t.lossCause ? `<div class="mb-2" style="font-size:11px;color:var(--loss-red)"><i class="fas fa-exclamation-circle mr-1"></i>${t.lossCause}</div>` : ''}
+      <!-- Tags -->
       ${(t.tags && t.tags.length) ? `<div class="flex flex-wrap gap-1 mb-2">${t.tags.map(tag => `<span class="tag-pill-sm">${tag}</span>`).join('')}</div>` : ''}
+      <!-- Checklist score -->
       ${(t.checklist && t.checklist.length) ? (() => {
         const checked = t.checklist.filter(c => c.checked).length;
         const total   = t.checklist.length;
         const score   = Math.round(checked / total * 100);
-        const color   = score === 100 ? '#4ade80' : score >= 70 ? '#fb923c' : '#f87171';
-        return `<div class="flex items-center gap-1 text-xs mb-2" style="color:${color}"><i class="fas fa-clipboard-check"></i><span>Checklist ${checked}/${total}</span></div>`;
+        const c = score === 100 ? 'var(--win-gold)' : score >= 70 ? '#fb923c' : 'var(--loss-red)';
+        return `<div class="flex items-center gap-1 mb-1" style="font-size:11px;color:${c};font-family:var(--font-data)"><i class="fas fa-clipboard-check"></i> ${checked}/${total} checklist</div>`;
       })() : ''}
-      ${t.notes ? `<div class="text-xs text-slate-400 mb-2 italic">"${t.notes.substring(0, 80)}${t.notes.length > 80 ? '...' : ''}"</div>` : ''}
+      <!-- Notes -->
+      ${t.notes ? `<div class="mt-1" style="font-size:11px;color:var(--text-muted);font-style:italic">"${t.notes.substring(0,80)}${t.notes.length>80?'…':''}"</div>` : ''}
     </div>`;
   }).join('');
 }
