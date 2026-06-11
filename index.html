@@ -53,41 +53,197 @@
 
 <!-- ===== MODAL: PRIMERA VEZ / CONFIGURACIÓN INICIAL ===== -->
 <div id="setupModal" class="modal">
-    <div class="modal-content">
-        <div class="text-center mb-5">
-            <div class="text-4xl mb-2">📊</div>
-            <h2 class="text-xl font-bold text-white">Bienvenido a tu Diario</h2>
-            <p class="text-sm text-slate-400 mt-1">Configura tu primera cuenta para empezar</p>
-        </div>
-        <form id="setupForm" class="space-y-4" novalidate>
-            <div>
-                <label class="block text-xs font-medium mb-1">Nombre de la cuenta *</label>
-                <input type="text" id="setupAccountName" class="form-input" placeholder="Ej: Cuenta Principal, FTMO $10k..." required>
+    <div class="modal-content" style="max-height:94vh">
+
+        <!-- PASO 1: Selector de tipo de cuenta -->
+        <div id="setupStep1">
+            <div class="text-center mb-5">
+                <div class="text-3xl mb-2">📊</div>
+                <h2 style="font-family:var(--font-ui);font-size:20px;font-weight:700;color:var(--text-primary)">Bienvenido a tu Diario</h2>
+                <p style="font-size:13px;color:var(--text-secondary);margin-top:4px">¿Qué tipo de cuenta vas a registrar?</p>
             </div>
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-medium mb-1">Capital inicial *</label>
-                    <input type="number" id="setupCapital" class="form-input" placeholder="10000" step="0.01" required>
+
+            <!-- Tarjeta: Cuenta Real -->
+            <button id="chooseReal" class="w-full mb-3 p-4 text-left"
+                style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-lg);transition:border-color .2s,background .2s">
+                <div class="flex items-center gap-3">
+                    <div style="width:44px;height:44px;border-radius:var(--radius-md);background:rgba(74,222,128,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                        <i class="fas fa-chart-line" style="color:#4ade80;font-size:18px"></i>
+                    </div>
+                    <div>
+                        <div style="font-family:var(--font-ui);font-weight:700;font-size:15px;color:var(--text-primary)">Cuenta Real</div>
+                        <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">Tu propio capital en un broker. Sin reglas de fondeo.</div>
+                    </div>
+                    <i class="fas fa-chevron-right ml-auto" style="color:var(--text-muted)"></i>
                 </div>
-                <div>
-                    <label class="block text-xs font-medium mb-1">DD máximo %</label>
-                    <input type="number" id="setupMaxDD" class="form-input" placeholder="8" step="0.1">
+                <div class="flex flex-wrap gap-1 mt-3">
+                    <span style="background:rgba(74,222,128,0.1);color:#4ade80;border:1px solid rgba(74,222,128,0.2);border-radius:4px;font-size:10px;padding:2px 8px">Sin límite de DD</span>
+                    <span style="background:rgba(74,222,128,0.1);color:#4ade80;border:1px solid rgba(74,222,128,0.2);border-radius:4px;font-size:10px;padding:2px 8px">Registro libre</span>
+                    <span style="background:rgba(74,222,128,0.1);color:#4ade80;border:1px solid rgba(74,222,128,0.2);border-radius:4px;font-size:10px;padding:2px 8px">Sin objetivos obligatorios</span>
                 </div>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-medium mb-1">Objetivo ganancia %</label>
-                    <input type="number" id="setupTarget" class="form-input" placeholder="10" step="0.1">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium mb-1">Riesgo/trade %</label>
-                    <input type="number" id="setupRisk" class="form-input" placeholder="1" step="0.1">
-                </div>
-            </div>
-            <button type="submit" class="btn-primary w-full py-3 mt-2">
-                <i class="fas fa-rocket mr-2"></i>Comenzar
             </button>
-        </form>
+
+            <!-- Tarjeta: PropFirm -->
+            <button id="choosePropfirm" class="w-full p-4 text-left"
+                style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-lg);transition:border-color .2s,background .2s">
+                <div class="flex items-center gap-3">
+                    <div style="width:44px;height:44px;border-radius:var(--radius-md);background:var(--accent-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                        <i class="fas fa-trophy" style="color:var(--win-gold);font-size:18px"></i>
+                    </div>
+                    <div>
+                        <div style="font-family:var(--font-ui);font-weight:700;font-size:15px;color:var(--text-primary)">PropFirm / Fondeo</div>
+                        <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">FTMO, The5ers, MyFundedFX y similares.</div>
+                    </div>
+                    <i class="fas fa-chevron-right ml-auto" style="color:var(--text-muted)"></i>
+                </div>
+                <div class="flex flex-wrap gap-1 mt-3">
+                    <span style="background:var(--accent-dim);color:#93c5fd;border:1px solid rgba(29,107,251,0.2);border-radius:4px;font-size:10px;padding:2px 8px">DD máximo y diario</span>
+                    <span style="background:var(--accent-dim);color:#93c5fd;border:1px solid rgba(29,107,251,0.2);border-radius:4px;font-size:10px;padding:2px 8px">Objetivo de ganancia</span>
+                    <span style="background:var(--accent-dim);color:#93c5fd;border:1px solid rgba(29,107,251,0.2);border-radius:4px;font-size:10px;padding:2px 8px">Alertas de riesgo</span>
+                </div>
+            </button>
+        </div>
+
+        <!-- PASO 2a: Formulario Cuenta Real -->
+        <div id="setupFormReal" class="hidden">
+            <button id="backToStep1Real" class="flex items-center gap-2 mb-4" style="color:var(--text-muted);font-size:13px;background:none;border:none;cursor:pointer">
+                <i class="fas fa-arrow-left"></i> Volver
+            </button>
+            <div class="flex items-center gap-3 mb-5">
+                <div style="width:36px;height:36px;border-radius:var(--radius-md);background:rgba(74,222,128,0.12);display:flex;align-items:center;justify-content:center">
+                    <i class="fas fa-chart-line" style="color:#4ade80"></i>
+                </div>
+                <div>
+                    <div style="font-family:var(--font-ui);font-weight:700;font-size:16px;color:var(--text-primary)">Cuenta Real</div>
+                    <div style="font-size:12px;color:var(--text-secondary)">Datos básicos de tu cuenta</div>
+                </div>
+            </div>
+            <form id="setupFormRealForm" class="space-y-4" novalidate>
+                <div>
+                    <label class="text-label block mb-1">Nombre de la cuenta *</label>
+                    <input type="text" id="realName" class="form-input" placeholder="Ej: IC Markets Principal" required>
+                </div>
+                <div>
+                    <label class="text-label block mb-1">Broker</label>
+                    <input type="text" id="realBroker" class="form-input" placeholder="Ej: IC Markets, XM, Pepperstone...">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-label block mb-1">Capital ($)</label>
+                        <input type="number" id="realCapital" class="form-input" placeholder="5000" step="0.01">
+                    </div>
+                    <div>
+                        <label class="text-label block mb-1">Riesgo/trade %</label>
+                        <input type="number" id="realRisk" class="form-input" placeholder="1" step="0.1" value="1">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-label block mb-1">Color identificador</label>
+                    <div class="flex gap-2 flex-wrap mt-1" id="realColorPicker">
+                        <button type="button" data-color="#4ade80" class="color-opt w-7 h-7 rounded-full border-2 border-transparent" style="background:#4ade80"></button>
+                        <button type="button" data-color="#3b82f6" class="color-opt w-7 h-7 rounded-full border-2 border-transparent" style="background:#3b82f6"></button>
+                        <button type="button" data-color="#a855f7" class="color-opt w-7 h-7 rounded-full border-2 border-transparent" style="background:#a855f7"></button>
+                        <button type="button" data-color="#f59e0b" class="color-opt w-7 h-7 rounded-full border-2 border-transparent" style="background:#f59e0b"></button>
+                        <button type="button" data-color="#ec4899" class="color-opt w-7 h-7 rounded-full border-2 border-transparent" style="background:#ec4899"></button>
+                        <button type="button" data-color="#14b8a6" class="color-opt w-7 h-7 rounded-full border-2 border-transparent" style="background:#14b8a6"></button>
+                    </div>
+                    <input type="hidden" id="realColor" value="#4ade80">
+                </div>
+                <button type="submit" class="btn-primary w-full py-3 mt-2">
+                    <i class="fas fa-rocket mr-2"></i>Crear cuenta y empezar
+                </button>
+            </form>
+        </div>
+
+        <!-- PASO 2b: Formulario PropFirm -->
+        <div id="setupFormPropfirm" class="hidden">
+            <button id="backToStep1Propfirm" class="flex items-center gap-2 mb-4" style="color:var(--text-muted);font-size:13px;background:none;border:none;cursor:pointer">
+                <i class="fas fa-arrow-left"></i> Volver
+            </button>
+            <div class="flex items-center gap-3 mb-4">
+                <div style="width:36px;height:36px;border-radius:var(--radius-md);background:var(--accent-dim);display:flex;align-items:center;justify-content:center">
+                    <i class="fas fa-trophy" style="color:var(--win-gold)"></i>
+                </div>
+                <div>
+                    <div style="font-family:var(--font-ui);font-weight:700;font-size:16px;color:var(--text-primary)">PropFirm / Fondeo</div>
+                    <div style="font-size:12px;color:var(--text-secondary)">Define las reglas del reto</div>
+                </div>
+            </div>
+            <form id="setupFormPropfirmForm" class="space-y-4" novalidate>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-label block mb-1">Nombre *</label>
+                        <input type="text" id="pfName" class="form-input" placeholder="Ej: FTMO Fase 1" required>
+                    </div>
+                    <div>
+                        <label class="text-label block mb-1">Firma</label>
+                        <input type="text" id="pfFirm" class="form-input" placeholder="FTMO, The5ers...">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-label block mb-1">Fase</label>
+                    <select id="pfPhase" class="form-select">
+                        <option value="">Sin fase</option>
+                        <option value="Fase 1">Fase 1 (Reto)</option>
+                        <option value="Fase 2">Fase 2 (Verificación)</option>
+                        <option value="Financiada">Cuenta Financiada</option>
+                        <option value="Instantáneo">Instantáneo (1 fase)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-label block mb-1">Capital fondeado ($) *</label>
+                    <input type="number" id="pfCapital" class="form-input" placeholder="50000" step="0.01" required>
+                    <!-- Info en $ calculado live -->
+                    <div id="pfCalcInfo" class="hidden mt-2 p-2 rounded text-xs space-y-1" style="background:var(--bg-elevated);border:1px solid var(--border)">
+                        <div class="flex justify-between"><span style="color:var(--text-secondary)">DD máx. en $</span><span id="pfMaxDDDollar" style="color:var(--loss-red);font-family:var(--font-data);font-weight:700">-</span></div>
+                        <div class="flex justify-between"><span style="color:var(--text-secondary)">DD diario en $</span><span id="pfDailyDDDollar" style="color:var(--win-gold);font-family:var(--font-data);font-weight:700">-</span></div>
+                        <div class="flex justify-between"><span style="color:var(--text-secondary)">Objetivo en $</span><span id="pfTargetDollar" style="color:#4ade80;font-family:var(--font-data);font-weight:700">-</span></div>
+                    </div>
+                </div>
+
+                <!-- Reglas del reto -->
+                <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px">
+                    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-secondary);margin-bottom:12px">Reglas del reto</div>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <label class="text-label block mb-1">DD máx. %</label>
+                            <input type="number" id="pfMaxDD" class="form-input" placeholder="10" step="0.1" value="10">
+                        </div>
+                        <div>
+                            <label class="text-label block mb-1">DD diario %</label>
+                            <input type="number" id="pfDailyDD" class="form-input" placeholder="5" step="0.1" value="5">
+                        </div>
+                        <div>
+                            <label class="text-label block mb-1">Objetivo %</label>
+                            <input type="number" id="pfTarget" class="form-input" placeholder="10" step="0.1" value="10">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-label block mb-1">Riesgo/trade %</label>
+                        <input type="number" id="pfRisk" class="form-input" placeholder="1" step="0.1" value="1">
+                    </div>
+                    <div>
+                        <label class="text-label block mb-1">Color</label>
+                        <div class="flex gap-1 flex-wrap mt-1" id="pfColorPicker">
+                            <button type="button" data-color="#C9A84C" class="color-opt w-7 h-7 rounded-full border-2 border-transparent" style="background:#C9A84C"></button>
+                            <button type="button" data-color="#1D6BFB" class="color-opt w-7 h-7 rounded-full border-2 border-transparent" style="background:#1D6BFB"></button>
+                            <button type="button" data-color="#a855f7" class="color-opt w-7 h-7 rounded-full border-2 border-transparent" style="background:#a855f7"></button>
+                            <button type="button" data-color="#ec4899" class="color-opt w-7 h-7 rounded-full border-2 border-transparent" style="background:#ec4899"></button>
+                            <button type="button" data-color="#14b8a6" class="color-opt w-7 h-7 rounded-full border-2 border-transparent" style="background:#14b8a6"></button>
+                            <button type="button" data-color="#f97316" class="color-opt w-7 h-7 rounded-full border-2 border-transparent" style="background:#f97316"></button>
+                        </div>
+                        <input type="hidden" id="pfColor" value="#C9A84C">
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary w-full py-3 mt-2" style="background:linear-gradient(135deg,#1D6BFB,#4f46e5)">
+                    <i class="fas fa-trophy mr-2"></i>Crear cuenta PropFirm
+                </button>
+            </form>
+        </div>
+
     </div>
 </div>
 
@@ -95,47 +251,104 @@
 <div id="newAccountModal" class="modal">
     <div class="modal-content">
         <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold">Nueva Cuenta</h3>
+            <h3 style="font-family:var(--font-ui);font-weight:700;font-size:16px;color:var(--text-primary)">Nueva Cuenta</h3>
             <button onclick="closeModal('newAccountModal')" class="text-[var(--text-secondary)] hover:text-white p-2"><i class="fas fa-times"></i></button>
         </div>
         <form id="newAccountForm" class="space-y-4" novalidate>
+
+            <!-- Tipo de cuenta -->
             <div>
-                <label class="block text-xs font-medium mb-1">Nombre *</label>
-                <input type="text" id="naName" class="form-input" placeholder="FTMO $10k, QvaFunded..." required>
+                <label class="text-label block mb-2">Tipo de cuenta</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <label class="na-type-card" style="cursor:pointer;display:block">
+                        <input type="radio" name="naType" value="real" class="hidden" id="naTypeReal">
+                        <div class="na-type-inner p-3 rounded-lg border text-center" style="border-color:var(--border);transition:all .2s">
+                            <i class="fas fa-chart-line mb-1 block" style="color:#4ade80;font-size:16px"></i>
+                            <div style="font-size:12px;font-weight:600;color:var(--text-primary)">Real</div>
+                            <div style="font-size:10px;color:var(--text-muted)">Tu broker personal</div>
+                        </div>
+                    </label>
+                    <label class="na-type-card" style="cursor:pointer;display:block">
+                        <input type="radio" name="naType" value="propfirm" class="hidden" id="naTypePropfirm" checked>
+                        <div class="na-type-inner p-3 rounded-lg border text-center" style="border-color:var(--accent-blue);background:var(--accent-dim)">
+                            <i class="fas fa-trophy mb-1 block" style="color:var(--win-gold);font-size:16px"></i>
+                            <div style="font-size:12px;font-weight:600;color:var(--text-primary)">PropFirm</div>
+                            <div style="font-size:10px;color:var(--text-muted)">Cuenta de fondeo</div>
+                        </div>
+                    </label>
+                </div>
             </div>
+
+            <!-- Nombre + Broker/Firma -->
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs font-medium mb-1">Capital inicial *</label>
+                    <label class="text-label block mb-1">Nombre *</label>
+                    <input type="text" id="naName" class="form-input" placeholder="FTMO $50k..." required>
+                </div>
+                <div>
+                    <label class="text-label block mb-1" id="naBrokerLabel">Firma</label>
+                    <input type="text" id="naBroker" class="form-input" placeholder="FTMO...">
+                </div>
+            </div>
+
+            <!-- Fase (solo PropFirm) -->
+            <div id="naPhaseRow">
+                <label class="text-label block mb-1">Fase</label>
+                <select id="naPhase" class="form-select">
+                    <option value="">Sin fase</option>
+                    <option value="Fase 1">Fase 1 (Reto)</option>
+                    <option value="Fase 2">Fase 2 (Verificación)</option>
+                    <option value="Financiada">Cuenta Financiada</option>
+                    <option value="Instantáneo">Instantáneo</option>
+                </select>
+            </div>
+
+            <!-- Capital + Riesgo -->
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="text-label block mb-1">Capital ($) *</label>
                     <input type="number" id="naCapital" class="form-input" placeholder="10000" required>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium mb-1">DD máximo %</label>
-                    <input type="number" id="naMaxDD" class="form-input" placeholder="8">
+                    <label class="text-label block mb-1">Riesgo/trade %</label>
+                    <input type="number" id="naRisk" class="form-input" placeholder="1" value="1" step="0.1">
                 </div>
             </div>
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-medium mb-1">Objetivo %</label>
-                    <input type="number" id="naTarget" class="form-input" placeholder="10">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium mb-1">Riesgo/trade %</label>
-                    <input type="number" id="naRisk" class="form-input" placeholder="1">
+
+            <!-- Reglas PropFirm (se ocultan en modo Real) -->
+            <div id="naPropfirmRules" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px">
+                <div class="text-label mb-3">Reglas del reto</div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="text-label block mb-1">DD máx. %</label>
+                        <input type="number" id="naMaxDD" class="form-input" placeholder="10" value="10" step="0.1">
+                    </div>
+                    <div>
+                        <label class="text-label block mb-1">DD diario %</label>
+                        <input type="number" id="naDailyDD" class="form-input" placeholder="5" value="5" step="0.1">
+                    </div>
+                    <div>
+                        <label class="text-label block mb-1">Objetivo %</label>
+                        <input type="number" id="naTarget" class="form-input" placeholder="10" value="10" step="0.1">
+                    </div>
                 </div>
             </div>
+
+            <!-- Color -->
             <div>
-                <label class="block text-xs font-medium mb-1">Color identificador</label>
-                <div id="colorPicker" class="flex gap-2 flex-wrap mt-1">
-                    <div class="color-opt w-8 h-8 rounded-full cursor-pointer border-2 border-transparent" style="background:#3b82f6" data-color="#3b82f6"></div>
-                    <div class="color-opt w-8 h-8 rounded-full cursor-pointer border-2 border-transparent" style="background:#22c55e" data-color="#22c55e"></div>
-                    <div class="color-opt w-8 h-8 rounded-full cursor-pointer border-2 border-transparent" style="background:#f59e0b" data-color="#f59e0b"></div>
-                    <div class="color-opt w-8 h-8 rounded-full cursor-pointer border-2 border-transparent" style="background:#8b5cf6" data-color="#8b5cf6"></div>
-                    <div class="color-opt w-8 h-8 rounded-full cursor-pointer border-2 border-transparent" style="background:#ec4899" data-color="#ec4899"></div>
-                    <div class="color-opt w-8 h-8 rounded-full cursor-pointer border-2 border-transparent" style="background:#14b8a6" data-color="#14b8a6"></div>
+                <label class="text-label block mb-2">Color</label>
+                <div id="naColorPicker" class="flex gap-2 flex-wrap">
+                    <button type="button" data-color="#C9A84C" class="color-opt w-7 h-7 rounded-full border-2 border-white" style="background:#C9A84C"></button>
+                    <button type="button" data-color="#1D6BFB" class="color-opt w-7 h-7 rounded-full border-2 border-transparent" style="background:#1D6BFB"></button>
+                    <button type="button" data-color="#4ade80" class="color-opt w-7 h-7 rounded-full border-2 border-transparent" style="background:#4ade80"></button>
+                    <button type="button" data-color="#a855f7" class="color-opt w-7 h-7 rounded-full border-2 border-transparent" style="background:#a855f7"></button>
+                    <button type="button" data-color="#ec4899" class="color-opt w-7 h-7 rounded-full border-2 border-transparent" style="background:#ec4899"></button>
+                    <button type="button" data-color="#14b8a6" class="color-opt w-7 h-7 rounded-full border-2 border-transparent" style="background:#14b8a6"></button>
                 </div>
-                <input type="hidden" id="naColor" value="#3b82f6">
+                <input type="hidden" id="naColor" value="#C9A84C">
             </div>
-            <div class="flex space-x-3">
+
+            <div class="flex gap-3">
                 <button type="submit" class="btn-primary flex-1 py-3">Crear Cuenta</button>
                 <button type="button" onclick="closeModal('newAccountModal')" class="btn-secondary flex-1 py-3">Cancelar</button>
             </div>

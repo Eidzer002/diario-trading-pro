@@ -120,40 +120,148 @@ export class TradingJournal {
 
   // ── ACCOUNTS ──────────────────────────────────────────────────────────
   setupAccountForm() {
-    const handleSubmit = async (nameId, capId, maxDDId, targetId, riskId, colorId, modalId) => {
-      const name = document.getElementById(nameId)?.value.trim();
-      const cap  = parseFloat(document.getElementById(capId)?.value) || 0;
-      if (!name || cap <= 0) { showToast('Completa los campos requeridos', 'error'); return; }
-      const acc = await this.createAccount({
-        name, initialCapital: cap,
-        maxDD:        parseFloat(document.getElementById(maxDDId)?.value)  || 8,
-        target:       parseFloat(document.getElementById(targetId)?.value) || 10,
-        riskPerTrade: parseFloat(document.getElementById(riskId)?.value)   || 1,
-        color:        document.getElementById(colorId)?.value || '#3b82f6',
+    // ── STEP 1: selección de tipo ─────────────────────────────────────
+    const show = (id) => {
+      ['setupStep1','setupFormReal','setupFormPropfirm'].forEach(s => {
+        document.getElementById(s)?.classList.add('hidden');
       });
-      if (acc) { closeModal(modalId); showToast('Cuenta creada'); this.renderDashboard(); }
+      document.getElementById(id)?.classList.remove('hidden');
     };
 
-    document.getElementById('setupForm')?.addEventListener('submit', async e => {
+    document.getElementById('chooseReal')?.addEventListener('click', () => show('setupFormReal'));
+    document.getElementById('choosePropfirm')?.addEventListener('click', () => show('setupFormPropfirm'));
+    document.getElementById('backToStep1Real')?.addEventListener('click', () => show('setupStep1'));
+    document.getElementById('backToStep1Propfirm')?.addEventListener('click', () => show('setupStep1'));
+
+    // ── Color pickers (setup modal + new account modal) ───────────────
+    const bindColorPicker = (pickerId, hiddenId) => {
+      document.getElementById(pickerId)?.querySelectorAll('.color-opt').forEach(opt => {
+        opt.addEventListener('click', () => {
+          document.getElementById(pickerId)?.querySelectorAll('.color-opt')
+            .forEach(o => o.style.borderColor = 'transparent');
+          opt.style.borderColor = '#fff';
+          const el = document.getElementById(hiddenId); if (el) el.value = opt.dataset.color;
+        });
+      });
+      // seleccionar el primero por defecto
+      const first = document.getElementById(pickerId)?.querySelector('.color-opt');
+      if (first) { first.style.borderColor = '#fff'; }
+    };
+    bindColorPicker('realColorPicker', 'realColor');
+    bindColorPicker('pfColorPicker', 'pfColor');
+    bindColorPicker('naColorPicker', 'naColor');
+
+    // ── REAL: cálculo en tiempo real ───── (ninguno — es simple)
+
+    // ── PROPFIRM: calcular $ equivalentes live ────────────────────────
+    const updatePFCalc = () => {
+      const cap    = parseFloat(document.getElementById('pfCapital')?.value) || 0;
+      const maxDD  = parseFloat(document.getElementById('pfMaxDD')?.value)   || 0;
+      const dailyDD= parseFloat(document.getElementById('pfDailyDD')?.value) || 0;
+      const target = parseFloat(document.getElementById('pfTarget')?.value)  || 0;
+      const info   = document.getElementById('pfCalcInfo');
+      if (!info) return;
+      if (cap > 0) {
+        info.classList.remove('hidden');
+        const fmt = v => '$' + v.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('pfMaxDDDollar').textContent    = fmt(cap * maxDD / 100);
+        document.getElementById('pfDailyDDDollar').textContent  = fmt(cap * dailyDD / 100);
+        document.getElementById('pfTargetDollar').textContent   = fmt(cap * target / 100);
+      } else {
+        info.classList.add('hidden');
+      }
+    };
+    ['pfCapital','pfMaxDD','pfDailyDD','pfTarget'].forEach(id =>
+      document.getElementById(id)?.addEventListener('input', updatePFCalc)
+    );
+
+    // ── SUBMIT: Cuenta Real ───────────────────────────────────────────
+    document.getElementById('setupFormRealForm')?.addEventListener('submit', async e => {
       e.preventDefault();
-      await handleSubmit('setupAccountName','setupCapital','setupMaxDD','setupTarget','setupRisk','naColor','setupModal');
+      const name = document.getElementById('realName')?.value.trim();
+      if (!name) { showToast('El nombre es requerido', 'error'); return; }
+      const acc = await this.createAccount({
+        name, accountType: 'real',
+        initialCapital: parseFloat(document.getElementById('realCapital')?.value) || 0,
+        brokerName: document.getElementById('realBroker')?.value.trim(),
+        riskPerTrade: parseFloat(document.getElementById('realRisk')?.value) || 1,
+        color: document.getElementById('realColor')?.value || '#4ade80',
+      });
+      if (acc) { closeModal('setupModal'); show('setupStep1'); showToast('¡Cuenta creada! 🚀'); this.renderDashboard(); }
     });
+
+    // ── SUBMIT: PropFirm ──────────────────────────────────────────────
+    document.getElementById('setupFormPropfirmForm')?.addEventListener('submit', async e => {
+      e.preventDefault();
+      const name = document.getElementById('pfName')?.value.trim();
+      const cap  = parseFloat(document.getElementById('pfCapital')?.value) || 0;
+      if (!name) { showToast('El nombre es requerido', 'error'); return; }
+      if (cap <= 0) { showToast('Ingresa el capital fondeado', 'error'); return; }
+      const acc = await this.createAccount({
+        name, accountType: 'propfirm',
+        initialCapital: cap,
+        brokerName: document.getElementById('pfFirm')?.value.trim(),
+        phase: document.getElementById('pfPhase')?.value,
+        maxDD:    parseFloat(document.getElementById('pfMaxDD')?.value)    || 10,
+        dailyDD:  parseFloat(document.getElementById('pfDailyDD')?.value)  || 5,
+        target:   parseFloat(document.getElementById('pfTarget')?.value)   || 10,
+        riskPerTrade: parseFloat(document.getElementById('pfRisk')?.value) || 1,
+        color: document.getElementById('pfColor')?.value || '#C9A84C',
+      });
+      if (acc) { closeModal('setupModal'); show('setupStep1'); showToast('¡Cuenta PropFirm creada! 🏆'); this.renderDashboard(); }
+    });
+
+    // ── Formulario Nueva Cuenta (Config) ─────────────────────────────
+    const toggleNaType = (type) => {
+      const isProp = type === 'propfirm';
+      document.getElementById('naPropfirmRules')?.classList.toggle('hidden', !isProp);
+      document.getElementById('naPhaseRow')?.classList.toggle('hidden', !isProp);
+      const brokerLabel = document.getElementById('naBrokerLabel');
+      if (brokerLabel) brokerLabel.textContent = isProp ? 'Firma' : 'Broker';
+      // Estilo visual de las tarjetas
+      document.querySelectorAll('.na-type-inner').forEach(el => {
+        el.style.borderColor = 'var(--border)';
+        el.style.background  = 'transparent';
+      });
+      const active = type === 'real'
+        ? document.getElementById('naTypeReal')?.nextElementSibling
+        : document.getElementById('naTypePropfirm')?.nextElementSibling;
+      if (active) { active.style.borderColor = 'var(--accent-blue)'; active.style.background = 'var(--accent-dim)'; }
+    };
+    document.querySelectorAll('input[name="naType"]').forEach(r =>
+      r.addEventListener('change', e => toggleNaType(e.target.value))
+    );
+    toggleNaType('propfirm'); // estado inicial
+
     document.getElementById('newAccountForm')?.addEventListener('submit', async e => {
       e.preventDefault();
-      await handleSubmit('naName','naCapital','naMaxDD','naTarget','naRisk','naColor','newAccountModal');
-      document.getElementById('newAccountForm')?.reset(); this.renderConfig();
-    });
-    document.querySelectorAll('.color-opt').forEach(opt => {
-      opt.addEventListener('click', () => {
-        document.querySelectorAll('.color-opt').forEach(o => o.style.borderColor = 'transparent');
-        opt.style.borderColor = '#fff';
-        const nc = document.getElementById('naColor'); if (nc) nc.value = opt.dataset.color;
+      const name = document.getElementById('naName')?.value.trim();
+      const cap  = parseFloat(document.getElementById('naCapital')?.value) || 0;
+      if (!name || cap <= 0) { showToast('Completa los campos requeridos', 'error'); return; }
+      const type = document.querySelector('input[name="naType"]:checked')?.value || 'propfirm';
+      const acc = await this.createAccount({
+        name, accountType: type, initialCapital: cap,
+        maxDD:       type === 'propfirm' ? (parseFloat(document.getElementById('naMaxDD')?.value)    || 10) : null,
+        dailyDD:     type === 'propfirm' ? (parseFloat(document.getElementById('naDailyDD')?.value)  || 5)  : null,
+        target:      type === 'propfirm' ? (parseFloat(document.getElementById('naTarget')?.value)   || 10) : null,
+        riskPerTrade: parseFloat(document.getElementById('naRisk')?.value) || 1,
+        color:        document.getElementById('naColor')?.value || '#3b82f6',
+        brokerName:   document.getElementById('naBroker')?.value?.trim(),
+        phase:        document.getElementById('naPhase')?.value,
       });
+      if (acc) { closeModal('newAccountModal'); document.getElementById('newAccountForm')?.reset(); toggleNaType('propfirm'); this.renderConfig(); showToast('Cuenta creada'); }
     });
   }
 
   async createAccount(data) {
-    const acc = await saveAccount({ name: data.name, initialCapital: data.initialCapital, maxDD: data.maxDD || 8, target: data.target || 10, riskPerTrade: data.riskPerTrade || 1, color: data.color || '#3b82f6' }, this.userId);
+    const acc = await saveAccount({
+      name: data.name, initialCapital: data.initialCapital || 0,
+      accountType: data.accountType || 'propfirm',
+      maxDD: data.maxDD || null, dailyDD: data.dailyDD || null,
+      target: data.target || null, riskPerTrade: data.riskPerTrade || 1,
+      color: data.color || '#3b82f6',
+      brokerName: data.brokerName || null, phase: data.phase || null,
+    }, this.userId);
     if (!acc) return null;
     this.accounts.push(acc);
     if (!this.activeAccount) { this.activeAccount = acc.id; local.setActiveAccount(acc.id); }
@@ -230,15 +338,39 @@ export class TradingJournal {
   renderConfig() {
     const al = document.getElementById('accountsList');
     if (al) al.innerHTML = !this.accounts.length
-      ? '<p class="text-xs text-slate-500">No hay cuentas.</p>'
+      ? '<p class="text-xs" style="color:var(--text-muted)">No hay cuentas.</p>'
       : this.accounts.map(a => {
-          const bal = this.getAccountBalance(a.id), pnl = bal - a.initialCapital, pct = pnl / a.initialCapital * 100;
-          return `<div class="glass-effect p-3 flex items-center justify-between">
-            <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full" style="background:${a.color}"></div>
-            <div><div class="font-semibold text-white text-sm">${a.name}</div>
-            <div class="text-xs text-slate-400">$${a.initialCapital.toLocaleString('en')} · DD ${a.maxDD}% · Obj ${a.target}%</div></div></div>
-            <div class="text-right"><div class="font-semibold text-sm" style="color:${pnl >= 0 ? '#22c55e' : '#ef4444'}">${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%</div>
-            <button onclick="window.journal.deleteAccount('${a.id}')" class="text-xs text-red-400 mt-1 block">Eliminar</button></div>
+          const bal = this.getAccountBalance(a.id);
+          const pnl = bal - a.initialCapital;
+          const pct = a.initialCapital > 0 ? pnl / a.initialCapital * 100 : 0;
+          const isProp = a.accountType === 'propfirm';
+          const typeBadge = isProp
+            ? `<span style="background:var(--accent-dim);color:#93c5fd;border:1px solid rgba(29,107,251,0.25);border-radius:4px;font-size:9px;padding:1px 6px;font-family:var(--font-data)">PROPFIRM</span>`
+            : `<span style="background:rgba(74,222,128,0.1);color:#4ade80;border:1px solid rgba(74,222,128,0.25);border-radius:4px;font-size:9px;padding:1px 6px;font-family:var(--font-data)">REAL</span>`;
+          const phaseBadge = a.phase
+            ? `<span style="background:rgba(168,85,247,0.1);color:#c4b5fd;border:1px solid rgba(168,85,247,0.2);border-radius:4px;font-size:9px;padding:1px 6px">${a.phase}</span>`
+            : '';
+          return `<div class="glass-effect p-3 flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <div class="w-3 h-3 rounded-full flex-shrink-0" style="background:${a.color}"></div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-1 flex-wrap">
+                  <span style="font-weight:700;font-size:13px;color:var(--text-primary)">${a.name}</span>
+                  ${typeBadge} ${phaseBadge}
+                </div>
+                <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-data);margin-top:2px">
+                  $${a.initialCapital.toLocaleString('en')}
+                  ${isProp && a.maxDD ? ` · DD ${a.maxDD}%` : ''}
+                  ${isProp && a.dailyDD ? ` · Diario ${a.dailyDD}%` : ''}
+                  ${isProp && a.target  ? ` · Obj ${a.target}%` : ''}
+                  ${a.brokerName ? ` · ${a.brokerName}` : ''}
+                </div>
+              </div>
+            </div>
+            <div class="text-right flex-shrink-0 ml-2">
+              <div style="font-family:var(--font-data);font-weight:700;font-size:13px;color:${pnl >= 0 ? 'var(--win-gold)' : 'var(--loss-red)'}">${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%</div>
+              <button onclick="window.journal.deleteAccount('${a.id}')" class="text-xs mt-1 block" style="color:var(--loss-red);opacity:.7">Eliminar</button>
+            </div>
           </div>`;
         }).join('');
     this.renderTags('pairTagsContainer',     this.config.pairs,      'pairs');
