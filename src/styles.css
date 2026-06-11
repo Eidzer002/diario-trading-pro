@@ -153,9 +153,13 @@ textarea.form-input { resize: vertical; min-height: 80px; line-height: 1.5; }
 
 /* ── MODAL / BOTTOM SHEET ──────────────────────────────── */
 .modal {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,0.8); z-index: 1000;
-  justify-content: center; align-items: flex-end;
+  display: none;
+  position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
+  background: rgba(0, 0, 0, 0.82);   /* 0.82 no comprime a hex-4 en Vite/cssnano */
+  z-index: 1000;
+  justify-content: center;
+  align-items: flex-end;
 }
 .modal.active { display: flex; }
 .modal-content {
@@ -163,7 +167,10 @@ textarea.form-input { resize: vertical; min-height: 80px; line-height: 1.5; }
   border: 1px solid var(--border);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   width: 100%; max-width: 480px;
-  max-height: 92vh; overflow-y: auto;
+  max-height: 88vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding: 1.5rem;
   animation: slideUp 0.22s ease-out;
 }
