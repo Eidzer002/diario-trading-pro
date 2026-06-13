@@ -210,7 +210,7 @@
                 <!-- Reglas del reto -->
                 <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px">
                     <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-secondary);margin-bottom:12px">Reglas del reto</div>
-                    <div class="grid grid-cols-3 gap-3">
+                    <div class="grid grid-cols-3 gap-3 mb-3">
                         <div>
                             <label class="text-label block mb-1">DD máx. %</label>
                             <input type="number" id="pfMaxDD" class="form-input" placeholder="10" step="0.1" value="10">
@@ -223,6 +223,14 @@
                             <label class="text-label block mb-1">Objetivo %</label>
                             <input type="number" id="pfTarget" class="form-input" placeholder="10" step="0.1" value="10">
                         </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-label block mb-1">Días mínimos de trading</label>
+                        <input type="number" id="pfMinDays" class="form-input" placeholder="4 (dejar vacío si no aplica)" min="1" max="60" step="1">
+                    </div>
+                    <div>
+                        <label class="text-label block mb-1">Notas / Reglas adicionales</label>
+                        <textarea id="pfChallengeNotes" class="form-input" rows="2" placeholder="Ej: No operar noticias, máx 2 trades/día..."></textarea>
                     </div>
                 </div>
 
@@ -330,7 +338,7 @@
             <!-- Reglas PropFirm (se ocultan en modo Real) -->
             <div id="naPropfirmRules" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px">
                 <div class="text-label mb-3">Reglas del reto</div>
-                <div class="grid grid-cols-3 gap-2">
+                <div class="grid grid-cols-3 gap-2 mb-3">
                     <div>
                         <label class="text-label block mb-1">DD máx. %</label>
                         <input type="number" id="naMaxDD" class="form-input" placeholder="10" value="10" step="0.1">
@@ -343,6 +351,14 @@
                         <label class="text-label block mb-1">Objetivo %</label>
                         <input type="number" id="naTarget" class="form-input" placeholder="10" value="10" step="0.1">
                     </div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-label block mb-1">Días mínimos de trading</label>
+                    <input type="number" id="naMinDays" class="form-input" placeholder="4 (dejar vacío si no aplica)" min="1" max="60" step="1">
+                </div>
+                <div>
+                    <label class="text-label block mb-1">Notas / Reglas adicionales</label>
+                    <textarea id="naChallengeNotes" class="form-input" rows="2" placeholder="Ej: No operar noticias, máx 2 trades/día..."></textarea>
                 </div>
             </div>
 
@@ -363,6 +379,91 @@
             <div class="flex gap-3">
                 <button type="submit" class="btn-primary flex-1 py-3">Crear Cuenta</button>
                 <button type="button" onclick="closeModal('newAccountModal')" class="btn-secondary flex-1 py-3">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ===== MODAL: EDITAR CUENTA ===== -->
+<div id="editAccountModal" class="modal">
+    <div class="modal-content">
+        <div class="flex items-center justify-between mb-4">
+            <h3 style="font-family:var(--font-ui);font-weight:700;font-size:16px;color:var(--text-primary)">Editar Cuenta</h3>
+            <button onclick="closeModal('editAccountModal')" class="text-[var(--text-secondary)] hover:text-white p-2"><i class="fas fa-times"></i></button>
+        </div>
+        <form id="editAccountForm" class="space-y-4" novalidate>
+            <input type="hidden" id="editAccId">
+
+            <!-- Nombre + Broker/Firma -->
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="text-label block mb-1">Nombre</label>
+                    <input type="text" id="editAccName" class="form-input" placeholder="FTMO $50k..." required>
+                </div>
+                <div>
+                    <label class="text-label block mb-1" id="editAccBrokerLabel">Firma</label>
+                    <input type="text" id="editAccBroker" class="form-input" placeholder="FTMO...">
+                </div>
+            </div>
+
+            <!-- Fase (solo PropFirm) -->
+            <div id="editAccPhaseRow">
+                <label class="text-label block mb-1">Fase</label>
+                <select id="editAccPhase" class="form-select">
+                    <option value="">Sin fase</option>
+                    <option value="Fase 1">Fase 1 (Reto)</option>
+                    <option value="Fase 2">Fase 2 (Verificación)</option>
+                    <option value="Financiada">Cuenta Financiada</option>
+                    <option value="Instantáneo">Instantáneo</option>
+                </select>
+            </div>
+
+            <!-- Balance actual -->
+            <div>
+                <label class="text-label block mb-1">Balance actual ($)</label>
+                <input type="number" id="editAccCurrentCap" class="form-input" placeholder="Balance de inicio (o actual si ajustas)" step="0.01">
+                <p style="font-size:10px;color:var(--text-muted);margin-top:3px">Capital fondeado original no se puede cambiar. Solo ajusta el balance de arranque.</p>
+            </div>
+
+            <!-- Reglas PropFirm -->
+            <div id="editAccPropfirmRules" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px">
+                <div class="text-label mb-3">Reglas del reto</div>
+                <div class="grid grid-cols-3 gap-2 mb-3">
+                    <div>
+                        <label class="text-label block mb-1">DD máx. %</label>
+                        <input type="number" id="editAccMaxDD" class="form-input" placeholder="10" step="0.1">
+                    </div>
+                    <div>
+                        <label class="text-label block mb-1">DD diario %</label>
+                        <input type="number" id="editAccDailyDD" class="form-input" placeholder="5" step="0.1">
+                    </div>
+                    <div>
+                        <label class="text-label block mb-1">Objetivo %</label>
+                        <input type="number" id="editAccTarget" class="form-input" placeholder="10" step="0.1">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-label block mb-1">Días mínimos de trading</label>
+                    <input type="number" id="editAccMinDays" class="form-input" placeholder="4 (dejar vacío si no aplica)" min="1" max="60" step="1">
+                    <p style="font-size:10px;color:var(--text-muted);margin-top:3px">Ej: FTMO requiere mínimo 4 días de trading.</p>
+                </div>
+            </div>
+
+            <!-- Notas adicionales -->
+            <div>
+                <label class="text-label block mb-1">Notas / Reglas adicionales</label>
+                <textarea id="editAccNotes" class="form-input" rows="3" placeholder="Ej: No operar durante noticias. Máx 2 trades por día. Sin martingala..."></textarea>
+            </div>
+
+            <!-- Riesgo por trade -->
+            <div>
+                <label class="text-label block mb-1">Riesgo/trade %</label>
+                <input type="number" id="editAccRisk" class="form-input" placeholder="1" step="0.1">
+            </div>
+
+            <div class="flex gap-3">
+                <button type="submit" class="btn-primary flex-1 py-3">Guardar cambios</button>
+                <button type="button" onclick="closeModal('editAccountModal')" class="btn-secondary flex-1 py-3">Cancelar</button>
             </div>
         </form>
     </div>

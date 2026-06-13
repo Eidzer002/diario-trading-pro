@@ -56,6 +56,8 @@ function rowToAccount(r) {
     riskPerTrade: r.risk_per_trade, color: r.color,
     accountType: r.account_type || 'propfirm',
     brokerName: r.broker_name || '', phase: r.phase || '',
+    minTradingDays: r.min_trading_days ?? null,
+    challengeNotes: r.challenge_notes ?? '',
     createdAt: r.created_at,
   };
 }
@@ -69,6 +71,8 @@ function accountToRow(a, userId) {
     color: a.color || '#3b82f6',
     account_type: a.accountType || 'propfirm',
     broker_name: a.brokerName || null, phase: a.phase || null,
+    min_trading_days: a.minTradingDays ? parseInt(a.minTradingDays) : null,
+    challenge_notes: a.challengeNotes || null,
   };
 }
 

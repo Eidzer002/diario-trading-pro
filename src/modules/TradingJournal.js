@@ -56,13 +56,15 @@ export class TradingJournal {
     setupChecklist(this);
     setupDailyNotes(this);
     setupChecklistConfig(this);
+    this.setupEditAccountForm();
     initCalendar(this);
     this.populateAccountSelector();
 
     // Exponer métodos necesarios para onclick inline
     window.journal = this;
-    window.journal.editDailyNote    = (id) => { editDailyNote(this, id); };
+    window.journal.editDailyNote       = (id) => { editDailyNote(this, id); };
     window.journal.removeChecklistItem = (idx) => this.removeChecklistItem(idx);
+    window.journal.openEditAccountModal = (id) => this.openEditAccountModal(id);
 
     if (!this.accounts.length) {
       setTimeout(() => openModal('setupModal'), 400);
@@ -207,6 +209,8 @@ export class TradingJournal {
         maxDD:    parseFloat(document.getElementById('pfMaxDD')?.value)    || 10,
         dailyDD:  parseFloat(document.getElementById('pfDailyDD')?.value)  || 5,
         target:   parseFloat(document.getElementById('pfTarget')?.value)   || 10,
+        minTradingDays: parseInt(document.getElementById('pfMinDays')?.value) || null,
+        challengeNotes: document.getElementById('pfChallengeNotes')?.value?.trim() || null,
         riskPerTrade: parseFloat(document.getElementById('pfRisk')?.value) || 1,
         color: document.getElementById('pfColor')?.value || '#C9A84C',
       });
@@ -248,6 +252,8 @@ export class TradingJournal {
         maxDD:       type === 'propfirm' ? (parseFloat(document.getElementById('naMaxDD')?.value)    || 10) : null,
         dailyDD:     type === 'propfirm' ? (parseFloat(document.getElementById('naDailyDD')?.value)  || 5)  : null,
         target:      type === 'propfirm' ? (parseFloat(document.getElementById('naTarget')?.value)   || 10) : null,
+        minTradingDays: type === 'propfirm' ? (parseInt(document.getElementById('naMinDays')?.value) || null) : null,
+        challengeNotes: type === 'propfirm' ? (document.getElementById('naChallengeNotes')?.value?.trim() || null) : null,
         riskPerTrade: parseFloat(document.getElementById('naRisk')?.value) || 1,
         color:        document.getElementById('naColor')?.value || '#3b82f6',
         brokerName:   document.getElementById('naBroker')?.value?.trim(),
@@ -266,6 +272,8 @@ export class TradingJournal {
       target: data.target || null, riskPerTrade: data.riskPerTrade || 1,
       color: data.color || '#3b82f6',
       brokerName: data.brokerName || null, phase: data.phase || null,
+      minTradingDays: data.minTradingDays || null,
+      challengeNotes: data.challengeNotes || null,
     }, this.userId);
     if (!acc) return null;
     this.accounts.push(acc);
@@ -296,6 +304,68 @@ export class TradingJournal {
     }
     this.populateAccountSelector(); this.renderConfig(); this.renderDashboard();
     showToast('Cuenta eliminada', 'info');
+  }
+
+  openEditAccountModal(id) {
+    const acc = this.getAccountById(id || this.activeAccount);
+    if (!acc) return;
+    // Rellenar el formulario con los datos actuales
+    const set = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val ?? ''; };
+    set('editAccId',         acc.id);
+    set('editAccName',       acc.name);
+    set('editAccBroker',     acc.brokerName || '');
+    set('editAccPhase',      acc.phase || '');
+    set('editAccCurrentCap', acc.currentCapital ?? acc.initialCapital);
+    set('editAccMaxDD',      acc.maxDD  || '');
+    set('editAccDailyDD',    acc.dailyDD || '');
+    set('editAccTarget',     acc.target || '');
+    set('editAccMinDays',    acc.minTradingDays || '');
+    set('editAccNotes',      acc.challengeNotes || '');
+    set('editAccRisk',       acc.riskPerTrade || 1);
+
+    // Mostrar/ocultar sección PropFirm
+    const isProp = acc.accountType === 'propfirm';
+    document.getElementById('editAccPropfirmRules')?.classList.toggle('hidden', !isProp);
+    document.getElementById('editAccPhaseRow')?.classList.toggle('hidden', !isProp);
+
+    openModal('editAccountModal');
+  }
+
+  setupEditAccountForm() {
+    document.getElementById('editAccountForm')?.addEventListener('submit', async e => {
+      e.preventDefault();
+      const id  = document.getElementById('editAccId')?.value;
+      const acc = this.getAccountById(id);
+      if (!acc) return;
+
+      const isProp = acc.accountType === 'propfirm';
+      const updated = {
+        ...acc,
+        name:          document.getElementById('editAccName')?.value.trim()  || acc.name,
+        brokerName:    document.getElementById('editAccBroker')?.value.trim() || null,
+        phase:         document.getElementById('editAccPhase')?.value        || null,
+        currentCapital: parseFloat(document.getElementById('editAccCurrentCap')?.value) || acc.currentCapital,
+        riskPerTrade:   parseFloat(document.getElementById('editAccRisk')?.value)        || acc.riskPerTrade,
+        maxDD:    isProp ? (parseFloat(document.getElementById('editAccMaxDD')?.value)   || acc.maxDD)    : acc.maxDD,
+        dailyDD:  isProp ? (parseFloat(document.getElementById('editAccDailyDD')?.value) || acc.dailyDD)  : acc.dailyDD,
+        target:   isProp ? (parseFloat(document.getElementById('editAccTarget')?.value)  || acc.target)   : acc.target,
+        minTradingDays: isProp ? (parseInt(document.getElementById('editAccMinDays')?.value) || null) : null,
+        challengeNotes: isProp ? (document.getElementById('editAccNotes')?.value.trim()  || null) : null,
+      };
+
+      const saved = await saveAccount(updated, this.userId);
+      if (!saved) { showToast('Error al guardar', 'error'); return; }
+
+      // Actualizar en memoria
+      const idx = this.accounts.findIndex(a => a.id === id);
+      if (idx >= 0) this.accounts[idx] = { ...this.accounts[idx], ...updated };
+
+      closeModal('editAccountModal');
+      this.populateAccountSelector();
+      this.renderConfig();
+      this.renderDashboard();
+      showToast('Cuenta actualizada ✓');
+    });
   }
 
   populateAccountSelector() {
@@ -375,7 +445,10 @@ export class TradingJournal {
             </div>
             <div class="text-right flex-shrink-0 ml-2">
               <div style="font-family:var(--font-data);font-weight:700;font-size:13px;color:${pnl >= 0 ? 'var(--win-gold)' : 'var(--loss-red)'}">${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%</div>
-              <button onclick="window.journal.deleteAccount('${a.id}')" class="text-xs mt-1 block" style="color:var(--loss-red);opacity:.7">Eliminar</button>
+              <div class="flex gap-2 justify-end mt-1">
+                <button onclick="window.journal.openEditAccountModal('${a.id}')" class="text-xs" style="color:var(--accent-blue);opacity:.85">Editar</button>
+                <button onclick="window.journal.deleteAccount('${a.id}')" class="text-xs" style="color:var(--loss-red);opacity:.7">Eliminar</button>
+              </div>
             </div>
           </div>`;
         }).join('');
